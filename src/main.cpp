@@ -331,7 +331,7 @@ void pre_auton(void)
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+/*
 class PID
 {
 private:
@@ -409,11 +409,11 @@ public:
       Point getPosition() {
                 return new Point(currentX, currentY, currentTheta);
             }*/
-};
+//};
 
 // int linearPID(float p, float i, float d);
 // int angularPID(float tp, float ti, float td);
-
+/*
 class Point
 {
 public:
@@ -804,12 +804,24 @@ public:
     turnPID.reset();
   }
 };
+*/
+
+#include "odom.h"
+#include "motion.h"
+
+startOdom(xRot, yRot, imu);
+
+// Example usage
+drive(24.0, 0);        // Drive 24 inches, keep heading 0°
+turn(90.0);            // Turn to 90° heading
+arc(30.0, 90.0, true); // Arc left, 30" radius, 90° angle
+sweep(90.0, false);    // Sweep turn right 90° (left side moves)
 
 void auton() // A function named "auton", in this case, any code in the brackets will run once (unless in a loop) when its autonomous
 {
   //////BLUE GOAL RUSH CURRENT/////////////////////
 
-  L1.setStopping(brake);
+  /*L1.setStopping(brake);
   L2.setStopping(brake);
   L3.setStopping(brake);
   R6.setStopping(brake);
@@ -856,7 +868,7 @@ void auton() // A function named "auton", in this case, any code in the brackets
   turn(270, 1000);
   turn(260, 1000);
   togoal(60, 1.2, 0.1, 80, true, 5000);
-  turn(230, 1000);
+  turn(230, 1000);*/
   /*wait(0.4,sec);
   RollerIntake.spin(forward);
   turn(120,1000);
@@ -1010,7 +1022,7 @@ void auton() // A function named "auton", in this case, any code in the brackets
   turn(300,1000);
   drive(26,1000);
 
-*/
+  */
 
   ////////////////////////////////////////
 
@@ -1032,7 +1044,7 @@ void auton() // A function named "auton", in this case, any code in the brackets
   drive(35,1000);
 
 
-*/
+  */
   // intakeTask = task(AntiJam);
 
   /*WallStake.set(true);
@@ -1062,7 +1074,7 @@ void auton() // A function named "auton", in this case, any code in the brackets
   //HookJam=false;
   drive(29,1000);
 
-*/
+  */
 
   // GoalRush
   /*RollerIntake.spin(forward);
@@ -1106,7 +1118,7 @@ void auton() // A function named "auton", in this case, any code in the brackets
   //wait(0.5, sec);
   drive(30,1000);
 
- */
+  */
 }
 
 int main()
@@ -1118,6 +1130,7 @@ int main()
 
   while (true)
   {
+
     task::sleep(10);
   }
 }
