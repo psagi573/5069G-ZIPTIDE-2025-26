@@ -1,6 +1,15 @@
 #include "vex.h"
 
-class PID;
+class PID
+{
+private:
+    double kP, kI, kD;
+    double integral;
+    double prevError;
+    double outputCap;
 
-//int linearPID(float p, float i, float d);
-//int angularPID(float tp, float ti, float td);
+public:
+    PID(double p, double i, double d, double cap = 100.0);
+    void reset();
+    double compute(double target, double current);
+};
