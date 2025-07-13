@@ -1,24 +1,11 @@
-#include "PID.h"
-#include "vex.h"
-#include <cmath>
-#include <algorithm>
 
-template <typename T>
-T clamp(T value, T minVal, T maxVal)
-{
-    if (value < minVal)
-        return minVal;
-    if (value > maxVal)
-        return maxVal;
-    return value;
-}
 
 PID::PID(double p, double i, double d, double cap)
 {
     kP = p;
     kI = i;
     kD = d;
-    outputCap = cap;
+    outputCap = cap; // Expected to be in volts, e.g., 12.0
     integral = 0;
     prevError = 0;
 }
@@ -34,15 +21,22 @@ double PID::compute(double target, double current)
     double error = target - current;
     integral += error;
 
-    clamp(integral, -outputCap, outputCap);
+    // Optional: cap the integral to prevent windup
+    if (integral > outputCap)
+        integral = outputCap;
+    if (integral < -outputCap)
+        integral = -outputCap;
 
     double derivative = error - prevError;
     prevError = error;
 
     double output = (error * kP) + (integral * kI) + (derivative * kD);
-    // Clamp output manually since std::clamp may not be available
 
-    clamp(output, -outputCap, outputCap);
+    // Clamp output manually (in volts)
+    if (output > outputCap)
+        output = outputCap;
+    if (output < -outputCap)
+        output = -outputCap;
 
     return output;
 }

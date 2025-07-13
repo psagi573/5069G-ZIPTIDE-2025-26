@@ -19,35 +19,53 @@ T clamp(T value, T minVal, T maxVal)
 
 // Constants
 const double wheelTrack = 14.8; // in inches (left-right distance)
-const double maxVel = 30;       // max linear speed in inches/sec
-const double accel = 60;        // acceleration in inches/sec^2
+
+const double maxVelDefault = 45; // max linear speed in inches/sec
+const double accelDefault = 120; // acceleration in inches/sec^2
+
+const double maxVelShort = 25; // slower for short moves
+const double accelShort = 60;  // slower accel for short moves
 
 // PID controllers
-PID distPID(1.2, 0.0, 0.6, 100);
-PID headingPID(3.0, 0.0, 1.0, 50);
+PID distPID(0.15, 0.0, 0.075, 11.0);
+PID headingPID(0.375, 0.0, 0.125, 11.0);
 
 void setDrive(double left, double right)
 {
     // Clamp values for safety
-    left = clamp(left, -100.0, 100.0);
-    right = clamp(right, -100.0, 100.0);
+    left = clamp(left, -11.0, 11.0);
+    right = clamp(right, -11.0, 11.0);
 
     // Send voltage to motors (percent units)
     // Replace these with your actual motor names
-    L1.spin(fwd, left, percent);
-    L2.spin(fwd, left, percent);
-    L3.spin(fwd, left, percent);
+    L1.spin(fwd, left, volt);
+    L2.spin(fwd, left, volt);
+    L3.spin(fwd, left, volt);
 
-    R7.spin(fwd, right, percent);
-    R7.spin(fwd, right, percent);
-    R8.spin(fwd, right, percent);
+    R7.spin(fwd, right, volt);
+    R7.spin(fwd, right, volt);
+    R8.spin(fwd, right, volt);
 }
 
 void drive(double distInches, double headingDeg)
 {
     distPID.reset();
     headingPID.reset();
-    Profile profile(maxVel, accel);
+    double maxVelLocal;
+    double accelLocal;
+
+    if (fabs(distInches) < 12.0)
+    {
+        maxVelLocal = maxVelShort;
+        accelLocal = accelShort;
+    }
+    else
+    {
+        maxVelLocal = maxVelDefault;
+        accelLocal = accelDefault;
+    }
+
+    Profile profile(maxVelLocal, accelLocal);
 
     double startX = getPose().x;
     double startY = getPose().y;
@@ -113,7 +131,22 @@ void arc(double radiusInches, double angleDeg)
 
     // Compute arc length
     double arcLength = 2 * M_PI * radiusInches * (angleDeg / 360.0);
-    Profile profile(maxVel, accel);
+
+    double maxVelLocal;
+    double accelLocal;
+
+    if (arcLength < 6.0)
+    {
+        maxVelLocal = maxVelShort;
+        accelLocal = accelShort;
+    }
+    else
+    {
+        maxVelLocal = maxVelDefault;
+        accelLocal = accelDefault;
+    }
+
+    Profile profile(maxVelLocal, accelLocal);
 
     double startX = getPose().x;
     double startY = getPose().y;
@@ -143,30 +176,62 @@ void arc(double radiusInches, double angleDeg)
     }
     setDrive(0, 0);
 }
-void sweep(double power, double angleDeg)
+void sweep(double angleDeg, bool rightSideMoving = true)
 {
     headingPID.reset();
     double startHeading = getPose().theta;
-    double direction = (angleDeg > 0) ? 1 : -1;
+    double targetHeading = startHeading + angleDeg;
+    double maxVelLocal;
+    double accelLocal;
+
+    if (targetHeading < 90)
+    {
+        maxVelLocal = maxVelShort;
+        accelLocal = accelShort;
+    }
+    else
+    {
+        maxVelLocal = maxVelDefault;
+        accelLocal = accelDefault;
+    }
+
+    Profile profile(maxVelLocal, accelLocal);
+
+    // Normalize target heading between 0 and 360
+    if (targetHeading > 360)
+        targetHeading -= 360;
+    if (targetHeading < 0)
+        targetHeading += 360;
 
     while (true)
     {
-        double currentHeading = getPose().theta;
-        double delta = currentHeading - startHeading;
+        double current = getPose().theta;
+        double error = targetHeading - current;
 
-        if (delta > 180)
-            delta -= 360;
-        if (delta < -180)
-            delta += 360;
-        if (direction * delta >= fabs(angleDeg))
+        // Wrap error to range [-180, 180]
+        if (error > 180)
+            error -= 360;
+        if (error < -180)
+            error += 360;
+
+        // Break if close enough
+        if (fabs(error) <= 1.0)
             break;
 
-        if (direction > 0)
-            setDrive(0, power); // sweep right
+        double traveled = angleDeg - error;
+        double velLimit = profile.getTargetVelocity(fabs(error), fabs(traveled));
+        double output = headingPID.compute(angleDeg, traveled); // PID targets total sweep angle
+
+        output = clamp(output, -velLimit, velLimit);
+
+        // Only one side moves
+        if (rightSideMoving)
+            setDrive(0, output); // right sweep (right moves)
         else
-            setDrive(power, 0); // sweep left
+            setDrive(output, 0); // left sweep (left moves)
 
         wait(10, msec);
     }
+
     setDrive(0, 0);
 }

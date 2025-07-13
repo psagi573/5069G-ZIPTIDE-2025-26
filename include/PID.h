@@ -9,7 +9,7 @@ private:
     double outputCap;
 
 public:
-    PID(double p, double i, double d, double cap = 100.0);
+    PID(double p, double i, double d, double cap = 11.0);
     void reset();
     double compute(double target, double current);
 };
