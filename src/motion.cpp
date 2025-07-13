@@ -5,6 +5,8 @@
 #include <cmath>
 #include <algorithm>
 
+using namespace vex;
+
 template <typename T>
 T clamp(T value, T minVal, T maxVal)
 {
@@ -32,13 +34,13 @@ void setDrive(double left, double right)
 
     // Send voltage to motors (percent units)
     // Replace these with your actual motor names
-    L1.spin(vex::fwd, left, vex::percent);
-    L2.spin(vex::fwd, left, vex::percent);
-    L3.spin(vex::fwd, left, vex::percent);
+    L1.spin(fwd, left, percent);
+    L2.spin(fwd, left, percent);
+    L3.spin(fwd, left, percent);
 
-    R7.spin(vex::fwd, right, vex::percent);
-    R7.spin(vex::fwd, right, vex::percent);
-    R8.spin(vex::fwd, right, vex::percent);
+    R7.spin(fwd, right, percent);
+    R7.spin(fwd, right, percent);
+    R8.spin(fwd, right, percent);
 }
 
 void drive(double distInches, double headingDeg)
@@ -77,7 +79,7 @@ void drive(double distInches, double headingDeg)
         double right = linearOut + turnOut;
 
         setDrive(left, right);
-        vex::wait(10, vex::msec);
+        wait(10, msec);
     }
 
     setDrive(0, 0);
@@ -99,7 +101,7 @@ void turn(double targetHeading)
 
         double output = headingPID.compute(0, -error);
         setDrive(-output, output);
-        vex::wait(10, vex::msec);
+        wait(10, msec);
     }
     setDrive(0, 0);
 }
@@ -137,7 +139,7 @@ void arc(double radiusInches, double angleDeg)
         double left = linearOut * turnRatio;
         double right = linearOut;
         setDrive(left, right);
-        vex::wait(10, vex::msec);
+        wait(10, msec);
     }
     setDrive(0, 0);
 }
@@ -164,7 +166,7 @@ void sweep(double power, double angleDeg)
         else
             setDrive(power, 0); // sweep left
 
-        vex::wait(10, vex::msec);
+        wait(10, msec);
     }
     setDrive(0, 0);
 }

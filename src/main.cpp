@@ -808,323 +808,42 @@ public:
 
 #include "odom.h"
 #include "motion.h"
+#include "autonSelector.h"
+#include "PID.h"
+#include "profile.h"
 
-startOdom(xRot, yRot, imu);
+/*startOdom(xRot, yRot, imu);
 
 // Example usage
 drive(24.0, 0);        // Drive 24 inches, keep heading 0°
 turn(90.0);            // Turn to 90° heading
 arc(30.0, 90.0, true); // Arc left, 30" radius, 90° angle
 sweep(90.0, false);    // Sweep turn right 90° (left side moves)
-
+*/
 void auton() // A function named "auton", in this case, any code in the brackets will run once (unless in a loop) when its autonomous
 {
-  //////BLUE GOAL RUSH CURRENT/////////////////////
+  if (selectedAuton == 0)
+  {
+    // Left Side
+  }
 
-  /*L1.setStopping(brake);
-  L2.setStopping(brake);
-  L3.setStopping(brake);
-  R6.setStopping(brake);
-  R7.setStopping(brake);
-  R8.setStopping(brake);
-  Hook.setStopping(coast);
-  // jkfhk = task(ppg);
-  intakeTask = task(AntiJam);
-  RollerIntake.setVelocity(600, rpm);
-  R6.setVelocity(600, rpm);
-  R7.setVelocity(600, rpm);
-  R8.setVelocity(600, rpm);
-  L1.setVelocity(600, rpm);
-  L2.setVelocity(600, rpm);
-  L3.setVelocity(600, rpm);
-  Hook.setVelocity(600, rpm);
+  else if (selectedAuton == 1)
+  {
+    // Right Side
+  }
 
-  ////////Worlds RED GOAL RUSH///////////
-  RollerIntake.spin(forward);
-  Hood.set(true);
-  togoal(30, 1.2, 0.1, 70, true, 5000);
-  drive(-20.5, 1000);
-  oo = false;
-  wait(300, msec);
-  turn(180, 1000);
-  drive(-19.8, 1000);
-  wait(0.1, sec);
-  mogo.set(true);
-  HookJam = true;
-  wait(0.5, sec);
-  HookJam = false;
-  mogo.set(false);
-  wait(0.1, sec);
-  turn(60, 1000);
-  drive(-11.5, 1000);
-  WallStake.set(true);
-  mogo.set(true);
-  wait(0.2, sec);
-  HookJam = true;
-  RollerIntake.spin(forward);
-  drive(23.5, 1000);
-  turn(135, 1000);
-  drive(40, 1000);
-  turn(270, 1000);
-  turn(260, 1000);
-  togoal(60, 1.2, 0.1, 80, true, 5000);
-  turn(230, 1000);*/
-  /*wait(0.4,sec);
-  RollerIntake.spin(forward);
-  turn(120,1000);
-  drive(60,1000);
-  drive(20,900);
-  wait(0.8,sec);
-  Doinker.set(true);
-  turn(170,1000);
-  Doinker.set(false);
-  WallStake.set(false);
-  drive(-30,1000);
-  wait(0.3,sec);
-  Drivetrain.turnFor(-250,deg,600,rpm);
-  */
-  ////////////////////////////////
-  /////Mess up Ring Rush Blue
-
-  /*Doinker.set(true);
-  drive(40,1000);
-  turn(179,1000);
-
-  */
-
-  ///////////////////////////////////////
-  // GOAL RUSH
-  /*RollerIntake.spin(forward);
-   //Redirect.set(true);
-   drive(45,1000);
-   RollerIntake.stop();
-   Doinker.set(true);
-   wait(100,msec);
-   drive(-25,1000);
-   Doinker.set(false);
-   wait(300,msec);
-   turn(170,1000);
-   drive(-19.5,1000);
-   //mogo.set(true);
-   //wait(0.2,sec);
-   //mogo.set(false);
-   wait(0.1,sec);
-   //drive(5,1000);
-   //RollerIntake.spin(forward);
-   turn(70,1000);
-   drive(-21,1000);
-   //wait(0.1,sec);
-   WallStake.set(true);
-   mogo.set(true);
-   wait(0.2,sec);
-   HookJam=true;
-   wait(0.4,sec);
-   RollerIntake.spin(forward);
-   turn(120,1000);
-   //Redirect.set(false);
-   drive(60,1000);
-   //drive(8,1000);
-   drive(20,900);
-   wait(0.8,sec);
-   //drive(-6,1000,0.075,0.3);
-   //drive(7,1000);
-   Doinker.set(true);
-   //wait(0.1,sec);
-   //drive(4,1000,0.075,0.3);
-   turn(170,1000);
-   Doinker.set(false);
-   WallStake.set(false);
-   drive(-30,1000);
-   wait(0.3,sec);
-   Drivetrain.turnFor(-250,deg,600,rpm);
-   //wait(0.2,sec);
-   //HookJam=false,
-   //turn(50,1000);
-   //drive(-20,1000);
-  */
-  // MINESOTA BLUE Ring///red goal
-  /* WallStake.set(true);
-   wait(1,sec);
-   drive(10.5,1000);
-   WallStake.set(false);
-   RollerIntake.spin(forward);
-   //HookJam=true;
-   wait(0.4,sec);
-   drive(-15.5,1000);
-   turn(75,1000);
-   drive(2,1000);
-   Doinker.set(true);
-   wait(0.1,sec);
-   drive(-9,1000);
-   wait(0.1,sec);
-   Doinker.set(false);
-   turn(60,1000);
-   drive(15.5,1000);
-   turn(0,1000);
-   RollerIntake.stop();
-   drive(-16,1000);
-   drive(-11.5,1000);
-   wait(0.2,sec);
-   mogo.set(true);
-   wait(0.1,sec);
-   HookJam=true;
-   RollerIntake.spin(forward);
-   turn(240,1000);
-   WallStake.set(true);
-   drive(25,1000);
-   turn(300,1000);
-   drive(40,1000);
-   wait(0.3,sec);
-   drive(-40,1000);
-   WallStake.set(false);
-   turn(60,1000);
-   drive(28,1000);*/
-
-  ////////////////////////////////////////
-
-  /// Minisota Blue Goal//// Red Ring
-
-  /*WallStake.set(true);
-  wait(1,sec);
-  drive(12,1000);
-  WallStake.set(false);
-  RollerIntake.spin(forward);
-  //HookJam=true;
-  wait(0.4,sec);
-  drive(-16,1000);
-  turn(330,1000);
-  ///drive(2,1000);
-  Doinker.set(true);
-  wait(0.1,sec);
-  drive(-9,1000);
-  wait(0.05,sec);
-  Doinker.set(false);
-  wait(0.2,sec);
-  turn(309,1000);
-  drive(12,1000);
-  turn(5,1000);
-  RollerIntake.stop();
-  drive(-13,1000);
-  drive(-11,1000);
-  wait(0.2,sec);
-  mogo.set(true);
-  wait(0.1,sec);
-  HookJam=true;
-  RollerIntake.spin(forward);
-  turn(120,1000);
-  WallStake.set(true);
-  drive(24.5,1000);
-  turn(55,1000);
-  drive(50,1000);
-  wait(0.3,sec);
-  drive(-43,1000);
-  WallStake.set(false);
-  turn(300,1000);
-  drive(26,1000);
-
-  */
-
-  ////////////////////////////////////////
-
-  /*mogo.set(true);
-  wait(0.4,sec);
-  turn(245,1000);//128
-  drive(15,1000);
-  wait(0.6,sec);
-  turn(310,1000);
-  WallStake.set(true);
-  wait(0.5,sec);
-  drive(40,1000);
-  drive(20,800);
-  wait(0.8,sec);
-  drive(-40,1000);
-  WallStake.set(false);
-  turn(60,1000);
-  //HookJam=false;
-  drive(35,1000);
-
-
-  */
-  // intakeTask = task(AntiJam);
-
-  /*WallStake.set(true);
-  wait(1.5,sec);
-  drive(10,1000);
-  WallStake.set(false);
-  RollerIntake.spin(forward);
-  HookJam=true;
-  wait(0.4,sec);
-  drive(-30,1000);
-  drive(-7,1000);
-  mogo.set(true);
-  wait(0.3,sec);
-  turn(120,1000);//128
-  drive(15,1000);
-  wait(0.4,sec);
-  turn(60,1000);
-  WallStake.set(true);
-  wait(0.5,sec);
-  drive(40,1000);
-  drive(20,800);
-  wait(0.8,sec);
-  drive(-40,1000);
-  WallStake.set(false);
-  turn(280,1000);
-
-  //HookJam=false;
-  drive(29,1000);
-
-  */
-
-  // GoalRush
-  /*RollerIntake.spin(forward);
-  //Redirect.set(true);
-  drive(38,1000);
-  RollerIntake.stop();
-  Doinker.set(true);
-  wait(50,msec);
-  drive(-27,1000);
-  Doinker.set(false);
-  wait(100,msec);
-  turn(180,1000);
-  //wait(0.5, sec);
-  drive(-20,1000);
-  mogo.set(true);
-  wait(0.3,sec);
-  HookJam=true;
-  RollerIntake.stop();
-  wait(0.5,sec);
-  mogo.set(false);
-  wait(0.1,sec);
-  HookJam=false;
-  turn(250,1000);
-  drive(-18.5,1000);
-  WallStake.set(true);
-  mogo.set(true);//2
-  //wait(0.5,sec);
-  //turn(210, 1000);
-
-  drive(11,1000);
-  turn(180, 1000);
-  RollerIntake.spin(forward);
-  HookJam=true;
-  drive(60, 1500);//corner ring
-  wait(1,sec);
-  drive(-30,1000);
-  Hook.stop();
-  RollerIntake.stop();
-  turn(35, 1000);
-  WallStake.set(false);
-  //wait(0.5, sec);
-  drive(30,1000);
-
-  */
+  else if (selectedAuton == 2)
+  {
+    // Skills Routine
+  }
 }
 
 int main()
 {
 
   vexcodeInit();
+  startOdom(Xaxis, Yaxis, inertial19);
+  autonSelectorUI();
   Competition.autonomous(auton);          // what function to run when autonomous begins, in this case it would run the function "auton"
   Competition.drivercontrol(usercontrol); // what function to run when driver control begins, in this case it would run the function "usercontrol"
 

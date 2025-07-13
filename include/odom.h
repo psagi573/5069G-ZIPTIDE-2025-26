@@ -1,4 +1,5 @@
 #include "vex.h"
+#pragma once
 
 struct Pose
 {
