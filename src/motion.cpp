@@ -28,7 +28,8 @@ const double accelShort = 60;  // slower accel for short moves
 
 // PID controllers
 PID distPID(0.15, 0.0, 0.075, 11.0);
-PID headingPID(0.375, 0.0, 0.125, 11.0);
+PID headingPID(0.3, 0.0, 0.7, 11.0);
+PID fastTurnPID(0.038, 0.0001, 0.35, 11.0);
 
 void setDrive(double left, double right)
 {
@@ -42,7 +43,7 @@ void setDrive(double left, double right)
     L2.spin(fwd, left, volt);
     L3.spin(fwd, left, volt);
 
-    R7.spin(fwd, right, volt);
+    R6.spin(fwd, right, volt);
     R7.spin(fwd, right, volt);
     R8.spin(fwd, right, volt);
 }
@@ -106,22 +107,36 @@ void drive(double distInches, double headingDeg)
 
 void turn(double targetHeading)
 {
-    headingPID.reset();
+    fastTurnPID.reset();
+    const double timeout = 1500;
+    double elapsedtime = 0;
+    double lastError = 0;
+
     while (true)
     {
-        double current = getPose().theta;
-        double error = targetHeading - current;
+        double heading = getPose().theta;
+        double error = targetHeading - heading;
+
         if (error > 180)
             error -= 360;
         if (error < -180)
             error += 360;
-        if (fabs(error) <= 1.0)
+
+        double output = fastTurnPID.compute(0, -error);
+        output = clamp(output, -1.0, 1.0);
+        double voltage = output * 11.0;
+
+        setDrive(-voltage, voltage);
+
+        if ((fabs(error) < 1.0 && fabs(error - lastError) < 0.2) || elapsedtime > timeout)
             break;
 
-        double output = headingPID.compute(0, -error);
-        setDrive(-output, output);
+        lastError = error;
+
+        elapsedtime += 10;
         wait(10, msec);
     }
+
     setDrive(0, 0);
 }
 

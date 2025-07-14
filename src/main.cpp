@@ -822,20 +822,19 @@ sweep(90.0, false);    // Sweep turn right 90° (left side moves)
 */
 void auton() // A function named "auton", in this case, any code in the brackets will run once (unless in a loop) when its autonomous
 {
-  if (selectedAuton == 0)
+  turn(90); // Drive 24 inches, keep heading 0°
+  /*switch (selectedAuton)
   {
-    // Left Side
-  }
-
-  else if (selectedAuton == 1)
-  {
-    // Right Side
-  }
-
-  else if (selectedAuton == 2)
-  {
+  case 0:
+    drive(10.0, 0); // Drive 24 inches, keep heading 0°
+    break;
+  case 1:
+    // Right Side Rush
+    break;
+  case 2:
     // Skills Routine
-  }
+    break;
+  }*/
 }
 
 int main()
@@ -843,13 +842,23 @@ int main()
 
   vexcodeInit();
   startOdom(Xaxis, Yaxis, inertial19);
-  autonSelectorUI();
+
   Competition.autonomous(auton);          // what function to run when autonomous begins, in this case it would run the function "auton"
   Competition.drivercontrol(usercontrol); // what function to run when driver control begins, in this case it would run the function "usercontrol"
 
   while (true)
   {
+    Pose pose = getPose();
 
+    Brain.Screen.clearScreen();
+    Brain.Screen.setCursor(1, 1);
+    Brain.Screen.print("X: %.2f in", pose.x);
+    Brain.Screen.setCursor(2, 1);
+    Brain.Screen.print("Y: %.2f in", pose.y);
+    Brain.Screen.setCursor(3, 1);
+    Brain.Screen.print("Theta: %.1f deg", pose.theta);
+
+    wait(100, msec); // Update every 100ms
     task::sleep(10);
   }
 }

@@ -24,7 +24,9 @@ int odomTask()
         double currY = yRot->position(turns); // Y rotation in revs
 
         // 2. Convert wheel movement to inches
-        double wheelCircumference = 3.25 * M_PI;
+        const double odomWheelDiameter = 2.00;
+        const double wheelCircumference = odomWheelDiameter * M_PI; // ≈ 6.283 in
+
         double deltaX = (currX - prevX) * wheelCircumference;
         double deltaY = (currY - prevY) * wheelCircumference;
 
