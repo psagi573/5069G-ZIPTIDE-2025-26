@@ -83,7 +83,8 @@ void drive(double distInches, double headingDeg)
             break;
 
         double linearOut = distPID.compute(target, traveled);
-        double velLimit = profile.getTargetVelocity(remaining, traveled);
+        double direction = (remaining >= 0) ? 1.0 : -1.0;
+        double velLimit = profile.getTargetVelocity(fabs(remaining), traveled, direction);
         linearOut = clamp(linearOut, -velLimit, velLimit);
 
         double headingError = headingDeg - pose.theta;
@@ -166,7 +167,9 @@ void arc(double radiusInches, double angleDeg)
             break;
 
         double linearOut = distPID.compute(target, traveled);
-        double velLimit = profile.getTargetVelocity(remaining, traveled);
+
+        double direction = (remaining >= 0) ? 1.0 : -1.0;
+        double velLimit = profile.getTargetVelocity(fabs(remaining), traveled, direction);
         linearOut = clamp(linearOut, -velLimit, velLimit);
 
         double left = linearOut * turnRatio;
@@ -176,7 +179,7 @@ void arc(double radiusInches, double angleDeg)
     }
     setDrive(0, 0);
 }
-void sweep(double angleDeg, bool rightSideMoving = true)
+/*void sweep(double angleDeg, bool rightSideMoving = true)
 {
     headingPID.reset();
     double startHeading = getPose().theta;
@@ -219,7 +222,8 @@ void sweep(double angleDeg, bool rightSideMoving = true)
             break;
 
         double traveled = angleDeg - error;
-        double velLimit = profile.getTargetVelocity(fabs(error), fabs(traveled));
+        double direction = (remaining >= 0) ? 1.0 : -1.0;
+        double velLimit = profile.getTargetVelocity(fabs(error), fabs(traveled), direction);
         double output = headingPID.compute(angleDeg, traveled); // PID targets total sweep angle
 
         output = clamp(output, -velLimit, velLimit);
@@ -235,3 +239,4 @@ void sweep(double angleDeg, bool rightSideMoving = true)
 
     setDrive(0, 0);
 }
+*/
