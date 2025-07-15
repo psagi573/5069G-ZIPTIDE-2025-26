@@ -26,6 +26,10 @@ const double accelDefault = 120; // acceleration in inches/sec^2
 const double maxVelShort = 25; // slower for short moves
 const double accelShort = 60;  // slower accel for short moves
 
+// Motor groups
+motor_group R = motor_group(R6, R7, R8);
+motor_group L = motor_group(L1, L2, L3);
+
 // PID controllers
 PID distPID(0, 0, 0., 11.0);
 PID headingPID(0., 0.0, 0, 11.0);
@@ -134,20 +138,28 @@ void turn(double targetHeading)
             error += 360;
 
         // Integral restraint (like your old code)
-        if (fabs(error) < 10)
+        if (fabs(error) < 10 && fabs(error) > 10)
             turnIntegral += error;
 
         // Compute PID using manual integral and derivative
         double derivative = error - lastError;
 
         // Manually build the PID output using class constants
-        double output = (0.08 * error) + (0.0 * turnIntegral) + (0.5 * derivative);
+        double output = (0.02 * error) + (0.0 * turnIntegral) + (0 * derivative);
+
+        if (output > 1)
+            output = 1;
+        if (output < -1)
+            output = -1;
+
+        L.spin(forward, 11 * output, volt);
+        R.spin(forward, -11 * output, volt);
 
         output = clamp(output, -11.0, 11.0);
         setDrive(-output, output); // Left / Right voltages for turn
 
         // Break condition (very similar to last year)
-        if ((fabs(error) < 1.0 && fabs(error - lastError) < 0.2) || elapsedTime > timeout)
+        if ((error > -1 && error < 1 && error - lastError > -0.2 && error - lastError < 0.2) || (elapsedTime >= timeout))
             break;
 
         lastError = error;
