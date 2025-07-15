@@ -34,7 +34,9 @@ double PID::compute(double target, double current)
     double error = target - current;
     integral += error;
 
-    integral = clamp(integral, -outputCap, outputCap);
+    double integralCap = 50.0;
+
+    integral = clamp(integral, -integralCap, integralCap);
 
     double derivative = error - prevError;
     prevError = error;

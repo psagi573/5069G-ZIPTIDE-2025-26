@@ -822,18 +822,27 @@ sweep(90.0, false);    // Sweep turn right 90° (left side moves)
 */
 void auton() // A function named "auton", in this case, any code in the brackets will run once (unless in a loop) when its autonomous
 {
-  turn(90); // Drive 24 inches, keep heading 0°
-  /*switch (selectedAuton)
+  turn(90.0);
+  /*if (autonRoutine == "Red Left")
   {
-  case 0:
-    drive(10.0, 0); // Drive 24 inches, keep heading 0°
-    break;
-  case 1:
-    // Right Side Rush
-    break;
-  case 2:
-    // Skills Routine
-    break;
+    // Call your Red Left auton code here
+    turn(90.0);
+  }
+  else if (autonRoutine == "Red Right")
+  {
+  }
+  else if (autonRoutine == "Blue Left")
+  {
+  }
+  else if (autonRoutine == "Blue Right")
+  {
+  }
+  else if (autonRoutine == "Skills")
+  {
+  }
+  else
+  {
+    // Default fallback or do nothing
   }*/
 }
 
@@ -842,7 +851,6 @@ int main()
 
   vexcodeInit();
   startOdom(Xaxis, Yaxis, inertial19);
-
   Competition.autonomous(auton);          // what function to run when autonomous begins, in this case it would run the function "auton"
   Competition.drivercontrol(usercontrol); // what function to run when driver control begins, in this case it would run the function "usercontrol"
 

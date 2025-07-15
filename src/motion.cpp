@@ -27,9 +27,9 @@ const double maxVelShort = 25; // slower for short moves
 const double accelShort = 60;  // slower accel for short moves
 
 // PID controllers
-PID distPID(0.15, 0.0, 0.075, 11.0);
-PID headingPID(0.3, 0.0, 0.7, 11.0);
-PID fastTurnPID(0.065, 0.0001, 0.5, 11.0);
+PID distPID(0, 0, 0., 11.0);
+PID headingPID(0., 0.0, 0, 11.0);
+PID fastTurnPID(0.08, 0, 0.5, 11.0);
 
 void setDrive(double left, double right)
 {
@@ -117,31 +117,41 @@ void drive(double distInches, double headingDeg)
 void turn(double targetHeading)
 {
     fastTurnPID.reset();
-    const double timeout = 3000;
-    double elapsedtime = 0;
+    double turnIntegral = 0;
     double lastError = 0;
+    double elapsedTime = 0;
+    const double timeout = 3000;
 
     while (true)
     {
         double heading = getPose().theta;
         double error = targetHeading - heading;
 
+        // Wrap error to [-180, 180]
         if (error > 180)
             error -= 360;
         if (error < -180)
             error += 360;
 
-        double output = fastTurnPID.compute(error, 0);
+        // Integral restraint (like your old code)
+        if (fabs(error) < 10)
+            turnIntegral += error;
+
+        // Compute PID using manual integral and derivative
+        double derivative = error - lastError;
+
+        // Manually build the PID output using class constants
+        double output = (0.08 * error) + (0.0 * turnIntegral) + (0.5 * derivative);
+
         output = clamp(output, -11.0, 11.0);
+        setDrive(-output, output); // Left / Right voltages for turn
 
-        setDrive(-output, output);
-
-        if ((fabs(error) < 1.0 && fabs(error - lastError) < 0.2) || elapsedtime > timeout)
+        // Break condition (very similar to last year)
+        if ((fabs(error) < 1.0 && fabs(error - lastError) < 0.2) || elapsedTime > timeout)
             break;
 
         lastError = error;
-
-        elapsedtime += 10;
+        elapsedTime += 10;
         wait(10, msec);
     }
 
