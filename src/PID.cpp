@@ -34,7 +34,7 @@ double PID::compute(double target, double current)
     double error = target - current;
     integral += error;
 
-    clamp(integral, -outputCap, outputCap);
+    integral = clamp(integral, -outputCap, outputCap);
 
     double derivative = error - prevError;
     prevError = error;
@@ -42,7 +42,7 @@ double PID::compute(double target, double current)
     double output = (error * kP) + (integral * kI) + (derivative * kD);
     // Clamp output manually since std::clamp may not be available
 
-    clamp(output, -outputCap, outputCap);
+    output = clamp(output, -outputCap, outputCap);
 
     return output;
 }
