@@ -10,8 +10,8 @@ Profile::Profile(double maxVelocity, double acceleration)
 double Profile::getTargetVelocity(double distRemaining, double distTraveled, double direction = 1.0)
 {
     // Avoid instability when very small
-    if (distTraveled < 0.001)
-        distTraveled = 0;
+    if (distTraveled < 0.5)
+        distTraveled = 1;
     if (distRemaining < 0.001)
         distRemaining = 0;
 

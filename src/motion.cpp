@@ -21,19 +21,17 @@ T clamp(T value, T minVal, T maxVal)
 const double wheelTrack = 14.8; // in inches (left-right distance)
 
 const double maxVelDefault = 45; // max linear speed in inches/sec
-const double accelDefault = 120; // acceleration in inches/sec^2
+const double accelDefault = 200; // acceleration in inches/sec^2
 
 const double maxVelShort = 25; // slower for short moves
 const double accelShort = 60;  // slower accel for short moves
 
 // Motor groups
-motor_group R = motor_group(R6, R7, R8);
-motor_group L = motor_group(L1, L2, L3);
 
 // PID controllers
-PID distPID(0, 0, 0., 11.0);
-PID headingPID(0., 0.0, 0, 11.0);
-PID fastTurnPID(0.08, 0, 0.5, 11.0);
+PID distPID(0.8, 0, 0.8, 100.0);
+PID headingPID(0.7, 0.0, 0.5, 100.0);
+PID fastTurnPID(0.035, 0, 0.3, 1.0);
 
 void setDrive(double left, double right)
 {
@@ -41,8 +39,7 @@ void setDrive(double left, double right)
     left = clamp(left, -11.0, 11.0);
     right = clamp(right, -11.0, 11.0);
 
-    // Send voltage to motors (percent units)
-    // Replace these with your actual motor names
+    // Send voltage to motors (volt units)
     L1.spin(fwd, left, volt);
     L2.spin(fwd, left, volt);
     L3.spin(fwd, left, volt);
@@ -52,29 +49,23 @@ void setDrive(double left, double right)
     R8.spin(fwd, right, volt);
 }
 
-void drive(double distInches, double headingDeg)
+void drive(double distInches, double headingDeg = 0.0, bool useHeadingCorrection = false)
 {
     distPID.reset();
     headingPID.reset();
-    double maxVelLocal;
-    double accelLocal;
 
-    if (fabs(distInches) < 12.0)
-    {
-        maxVelLocal = maxVelShort;
-        accelLocal = accelShort;
-    }
-    else
-    {
-        maxVelLocal = maxVelDefault;
-        accelLocal = accelDefault;
-    }
+    double maxVelLocal = (fabs(distInches) < 12.0) ? maxVelShort : maxVelDefault;
+    double accelLocal = (fabs(distInches) < 12.0) ? accelShort : accelDefault;
 
     Profile profile(maxVelLocal, accelLocal);
 
     double startX = getPose().x;
     double startY = getPose().y;
     double target = distInches;
+
+    double lastError = 0;
+    int elapsed = 0;
+    const int timeout = 3000;
 
     while (true)
     {
@@ -86,27 +77,36 @@ void drive(double distInches, double headingDeg)
 
         double linearOut = distPID.compute(target, traveled);
         double direction = (error >= 0) ? 1.0 : -1.0;
+
         double velLimit = profile.getTargetVelocity(fabs(error), traveled, direction);
         if (velLimit < 1.0)
             velLimit = 1.0;
         linearOut = clamp(linearOut, -velLimit, velLimit);
 
-        double headingError = headingDeg - pose.theta;
-        if (headingError > 180)
-            headingError -= 360;
-        if (headingError < -180)
-            headingError += 360;
-        double turnOut = headingPID.compute(headingError, 0);
+        // Optional heading correction
+        double turnOut = 0.0;
+        if (useHeadingCorrection)
+        {
+            double headingError = headingDeg - pose.theta;
+            if (headingError > 180)
+                headingError -= 360;
+            if (headingError < -180)
+                headingError += 360;
+
+            if (fabs(headingError) > 3)
+                turnOut = headingPID.compute(headingError, 0);
+        }
+
+        // Scale to voltage
+        linearOut = (linearOut / 100.0) * 11.0;
+        turnOut = (turnOut / 100.0) * 11.0;
 
         double left = linearOut - turnOut;
         double right = linearOut + turnOut;
 
         setDrive(left, right);
 
-        static double lastError = 0;
-        static int elapsed = 0;
-        const int timeout = 3000; // in milliseconds
-
+        // Exit conditions
         if ((fabs(error) < 0.5 && fabs(error - lastError) < 0.1) || elapsed > timeout)
             break;
 
@@ -119,6 +119,60 @@ void drive(double distInches, double headingDeg)
 }
 
 void turn(double targetHeading)
+{
+    fastTurnPID.reset();
+    double elapsedTime = 0;
+    const double timeout = 3000;
+
+    double error = 0;
+    double lastError = 0;
+    double turnOutput = 0;
+
+    while (true)
+    {
+        double heading = getPose().theta;
+        error = targetHeading - heading;
+
+        // Wrap angle error [-180, 180]
+        if (error > 180)
+            error -= 360;
+        if (error < -180)
+            error += 360;
+
+        // Only accumulate integral if error is small enough
+        if (fabs(error) < 10)
+        {
+            fastTurnPID.integral += error;
+        }
+
+        // Use your PID class for final output
+        fastTurnPID.prevError = lastError; // For derivative
+        turnOutput = fastTurnPID.kP * error + fastTurnPID.kI * fastTurnPID.integral + fastTurnPID.kD * (error - lastError);
+
+        // Clamp output between -1 and 1, then scale to volts
+        if (turnOutput > 1)
+            turnOutput = 1;
+        if (turnOutput < -1)
+            turnOutput = -1;
+
+        double leftVolt = 11 * turnOutput;
+        double rightVolt = -11 * turnOutput;
+
+        setDrive(leftVolt, rightVolt);
+
+        // Exit condition (same as old version)
+        if ((fabs(error) < 1.0 && fabs(error - lastError) < 0.2) || elapsedTime >= timeout)
+            break;
+
+        lastError = error;
+        elapsedTime += 10;
+        wait(10, msec);
+    }
+
+    setDrive(0, 0);
+}
+
+/*void turn(double targetHeading)
 {
     fastTurnPID.reset();
     double turnIntegral = 0;
@@ -145,21 +199,15 @@ void turn(double targetHeading)
         double derivative = error - lastError;
 
         // Manually build the PID output using class constants
-        double output = (0.02 * error) + (0.0 * turnIntegral) + (0 * derivative);
+        double output = (0.7 * error) + (0.0 * turnIntegral) + (0.8 * derivative);
 
-        if (output > 1)
-            output = 1;
-        if (output < -1)
-            output = -1;
-
-        L.spin(forward, 11 * output, volt);
-        R.spin(forward, -11 * output, volt);
-
-        output = clamp(output, -11.0, 11.0);
-        setDrive(-output, output); // Left / Right voltages for turn
+        output = clamp(output, -100.0, 100.0);
+        output = output / 100;     // converts to decimal units
+        output = output * 11;      // converts to volt units
+        setDrive(output, -output); // Left / Right voltages for turn
 
         // Break condition (very similar to last year)
-        if ((error > -1 && error < 1 && error - lastError > -0.2 && error - lastError < 0.2) || (elapsedTime >= timeout))
+        if (fabs(error) < 1.5 && fabs(derivative) < 0.5)
             break;
 
         lastError = error;
@@ -168,7 +216,7 @@ void turn(double targetHeading)
     }
 
     setDrive(0, 0);
-}
+}*/
 
 void arc(double radiusInches, double angleDeg)
 {
