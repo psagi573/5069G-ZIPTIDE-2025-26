@@ -315,16 +315,16 @@ void usercontrol() // A function named "usercontrol", in this case, any code in 
   task d(Hstake);
   task e(BigDControls);
 }
-// define your global instances of motors and other devices here
+
 void pre_auton(void)
 {
   // Initializing Robot Configuration. DO NOT REMOVE!
+  vexcodeInit();
+
+  inertial19.calibrate();
+  while (inertial19.isCalibrating())
   {
-    inertial19.calibrate();
-    // 3seconds for the inertial sensor to calabrate
-    // waits for the Inertial Sensor to calibrate
-    // All activities that occur before the competition starts
-    // Example: clearing encoders, setting servo positions, ...
+    wait(100, msec);
   }
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -405,10 +405,10 @@ public:
     Brain.Screen.clearScreen();
     Brain.Screen.printAt(10, 20, "X: %.2f Y: %.2f", currentParallel, currentPerp);
   }
-  /*
+
       Point getPosition() {
                 return new Point(currentX, currentY, currentTheta);
-            }*/
+            }
 //};
 
 // int linearPID(float p, float i, float d);
@@ -822,8 +822,7 @@ sweep(90.0, false);    // Sweep turn right 90° (left side moves)
 */
 void auton() // A function named "auton", in this case, any code in the brackets will run once (unless in a loop) when its autonomous
 {
-  drive(24.0, 0);
-
+  longdrive(72, 0);
   /*if (autonRoutine == "Red Left")
   {
     // Call your Red Left auton code here
@@ -852,6 +851,7 @@ int main()
 
   vexcodeInit();
   startOdom(Xaxis, Yaxis, inertial19);
+  pre_auton();
   Competition.autonomous(auton);          // what function to run when autonomous begins, in this case it would run the function "auton"
   Competition.drivercontrol(usercontrol); // what function to run when driver control begins, in this case it would run the function "usercontrol"
 
@@ -866,6 +866,16 @@ int main()
     Brain.Screen.print("Y: %.2f in", pose.y);
     Brain.Screen.setCursor(3, 1);
     Brain.Screen.print("Theta: %.1f deg", pose.theta);
+
+    Controller1.Screen.clearLine(0); // Optional: clear old output
+    Controller1.Screen.setCursor(1, 1);
+    Controller1.Screen.print("X: %.1f", getPose().x);
+
+    Controller1.Screen.setCursor(2, 1);
+    Controller1.Screen.print("Y: %.1f", getPose().y);
+
+    Controller1.Screen.setCursor(3, 1);
+    Controller1.Screen.print("T: %.1f", getPose().theta);
 
     wait(100, msec); // Update every 100ms
     task::sleep(10);

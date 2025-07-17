@@ -21,7 +21,7 @@ T clamp(T value, T minVal, T maxVal)
 const double wheelTrack = 14.8; // in inches (left-right distance)
 
 const double maxVelDefault = 45; // max linear speed in inches/sec
-const double accelDefault = 200; // acceleration in inches/sec^2
+const double accelDefault = 120; // acceleration in inches/sec^2
 
 const double maxVelShort = 25; // slower for short moves
 const double accelShort = 60;  // slower accel for short moves
@@ -29,9 +29,9 @@ const double accelShort = 60;  // slower accel for short moves
 // Motor groups
 
 // PID controllers
-PID distPID(0.8, 0, 0.8, 100.0);
-PID headingPID(0.7, 0.0, 0.5, 100.0);
-PID fastTurnPID(0.035, 0, 0.3, 1.0);
+PID distPID(0.15, 0, 0.9, 1.0);
+PID headingPID(0.04, 0.0, 0.33, 1.0);
+PID fastTurnPID(0.04, 0, 0.33, 1.0);
 
 void setDrive(double left, double right)
 {
@@ -48,16 +48,12 @@ void setDrive(double left, double right)
     R7.spin(fwd, right, volt);
     R8.spin(fwd, right, volt);
 }
-
-void drive(double distInches, double headingDeg = 0.0, bool useHeadingCorrection = false)
+void longdrive(double distInches, double headingDeg)
 {
     distPID.reset();
     headingPID.reset();
 
-    double maxVelLocal = (fabs(distInches) < 12.0) ? maxVelShort : maxVelDefault;
-    double accelLocal = (fabs(distInches) < 12.0) ? accelShort : accelDefault;
-
-    Profile profile(maxVelLocal, accelLocal);
+    Profile profile(maxVelDefault, accelDefault);
 
     double startX = getPose().x;
     double startY = getPose().y;
@@ -75,38 +71,93 @@ void drive(double distInches, double headingDeg = 0.0, bool useHeadingCorrection
         double traveled = sqrt(dx * dx + dy * dy);
         double error = target - traveled;
 
+        // Compute linear output (PID)
         double linearOut = distPID.compute(target, traveled);
         double direction = (error >= 0) ? 1.0 : -1.0;
 
+        // If using motion profile, apply velocity limit and clamp output
+        // Motion profiling clamp only
         double velLimit = profile.getTargetVelocity(fabs(error), traveled, direction);
-        if (velLimit < 1.0)
-            velLimit = 1.0;
         linearOut = clamp(linearOut, -velLimit, velLimit);
 
-        // Optional heading correction
+        // Clamp linear output to ±1 before scaling volts for smooth control
         double turnOut = 0.0;
-        if (useHeadingCorrection)
-        {
-            double headingError = headingDeg - pose.theta;
-            if (headingError > 180)
-                headingError -= 360;
-            if (headingError < -180)
-                headingError += 360;
+        double headingError = headingDeg - pose.theta;
 
-            if (fabs(headingError) > 3)
-                turnOut = headingPID.compute(headingError, 0);
+        // Normalize heading error to [-180, 180]
+        if (headingError > 180)
+            headingError -= 360;
+        if (headingError < -180)
+            headingError += 360;
+
+        if (fabs(headingError) > 5)
+        {
+            turnOut = headingPID.compute(headingError, 0);
+
+            double headingScale = 0.02; // Tunable
+            turnOut *= fabs(headingError) * headingScale;
+
+            // Soft cap to avoid overcorrection
+            turnOut = clamp(turnOut, -0.3, 0.3); // ~3.3V max correction
         }
 
-        // Scale to voltage
-        linearOut = (linearOut / 100.0) * 11.0;
-        turnOut = (turnOut / 100.0) * 11.0;
+        // Scale outputs from PID range [-1, 1] to volts [-11, 11]
+        linearOut = linearOut * 11.0;
+        turnOut = turnOut * 11.0;
 
-        double left = linearOut - turnOut;
-        double right = linearOut + turnOut;
+        double leftVolt = linearOut - turnOut;
+        double rightVolt = linearOut + turnOut;
 
-        setDrive(left, right);
+        setDrive(leftVolt, rightVolt);
 
-        // Exit conditions
+        // Exit conditions: close enough or timeout
+        if ((fabs(error) < 0.5 && fabs(error - lastError) < 0.1) || elapsed > timeout)
+            break;
+
+        lastError = error;
+        elapsed += 10;
+        wait(10, msec);
+    }
+
+    setDrive(0, 0);
+}
+
+void fastdrive(double distInches)
+{
+    distPID.reset();
+
+    double startX = getPose().x;
+    double startY = getPose().y;
+    double target = distInches;
+
+    double lastError = 0;
+    int elapsed = 0;
+    const int timeout = 3000;
+
+    while (true)
+    {
+        Pose pose = getPose();
+        double dx = pose.x - startX;
+        double dy = pose.y - startY;
+        double traveled = sqrt(dx * dx + dy * dy);
+        double error = target - traveled;
+
+        // Compute linear output (PID)
+        double linearOut = distPID.compute(target, traveled);
+        // For snappy control without profile, clamp linearOut to ±1 as well
+        if (linearOut > 1.0)
+            linearOut = 1.0;
+        if (linearOut < -1.0)
+            linearOut = -1.0;
+
+        linearOut = linearOut * 11.0;
+
+        double leftVolt = linearOut;
+        double rightVolt = linearOut;
+
+        setDrive(leftVolt, rightVolt);
+
+        // Exit conditions: close enough or timeout
         if ((fabs(error) < 0.5 && fabs(error - lastError) < 0.1) || elapsed > timeout)
             break;
 
@@ -161,7 +212,7 @@ void turn(double targetHeading)
         setDrive(leftVolt, rightVolt);
 
         // Exit condition (same as old version)
-        if ((fabs(error) < 1.0 && fabs(error - lastError) < 0.2) || elapsedTime >= timeout)
+        if (fabs(error) < 1.0 || elapsedTime >= timeout)
             break;
 
         lastError = error;

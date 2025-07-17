@@ -1,6 +1,6 @@
 #include "odom.h"
-
-void drive(double distInches, double headingDeg = 0);
+void longdrive(double distInches, double headingDeg);
+void fastdrive(double distInches);
 void turn(double targetHeading);
 void arc(double radiusInches, double angleDeg);
 // oid sweep(double power, double angleDeg);
