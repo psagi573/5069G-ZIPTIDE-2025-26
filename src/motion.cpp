@@ -75,6 +75,9 @@ void longdrive(double distInches, double headingDeg)
         double linearOut = distPID.compute(target, traveled);
         double direction = (error >= 0) ? 1.0 : -1.0;
 
+        if ((fabs(error) < 0.5 && fabs(error - lastError) < 0.1) || elapsed > timeout)
+            break;
+
         // If using motion profile, apply velocity limit and clamp output
         // Motion profiling clamp only
         double velLimit = profile.getTargetVelocity(fabs(error), traveled, direction);
@@ -111,9 +114,6 @@ void longdrive(double distInches, double headingDeg)
         setDrive(leftVolt, rightVolt);
 
         // Exit conditions: close enough or timeout
-        if ((fabs(error) < 0.5 && fabs(error - lastError) < 0.1) || elapsed > timeout)
-            break;
-
         lastError = error;
         elapsed += 10;
         wait(10, msec);
