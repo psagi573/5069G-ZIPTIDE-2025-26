@@ -23,8 +23,8 @@ int odomTask()
         double currX = xRot->position(turns); // X rotation in revs
         double currY = yRot->position(turns); // Y rotation in revs
 
-        const double lateralWheelOffset = 4;   // inches from center to lateral (X) wheel
-        const double forwardWheelOffset = 2.0; // inches from center to forward (Y) wheel
+        const double lateralWheelOffset = 2.0; // inches from center to lateral (X) wheel
+        const double forwardWheelOffset = 0;   // inches from center to forward (Y) wheel
 
         // 2. Convert wheel movement to inches
         const double odomWheelDiameter = 2.00;
@@ -50,14 +50,14 @@ int odomTask()
         double deltaXGlobal, deltaYGlobal;
         if (fabs(deltaTheta) < 0.01)
         {
-            deltaXGlobal = deltaX * cos(thetaRad) - deltaY * sin(thetaRad);
-            deltaYGlobal = deltaX * sin(thetaRad) + deltaY * cos(thetaRad);
+            deltaXGlobal = correctedDeltaX * cos(thetaRad) - correctedDeltaY * sin(thetaRad);
+            deltaYGlobal = correctedDeltaX * sin(thetaRad) + correctedDeltaY * cos(thetaRad);
         }
         else
         {
             double avgTheta = prevThetaRad + deltaTheta / 2.0;
-            deltaXGlobal = deltaX * cos(avgTheta) - deltaY * sin(avgTheta);
-            deltaYGlobal = deltaX * sin(avgTheta) + deltaY * cos(avgTheta);
+            deltaXGlobal = correctedDeltaX * cos(avgTheta) - correctedDeltaY * sin(avgTheta);
+            deltaYGlobal = correctedDeltaX * sin(avgTheta) + correctedDeltaY * cos(avgTheta);
         }
 
         // 6. Update position state

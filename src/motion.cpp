@@ -31,7 +31,7 @@ const double accelShort = 60;  // slower accel for short moves
 // PID controllers
 PID distPID(0.15, 0, 0.9, 1.0);
 PID headingPID(0.04, 0.0, 0.33, 1.0);
-PID fastTurnPID(0.04, 0, 0.33, 1.0);
+PID fastTurnPID(0.04, 0.0001, 0.39, 1.0);
 
 void setDrive(double left, double right)
 {
