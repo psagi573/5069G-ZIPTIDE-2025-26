@@ -174,7 +174,7 @@ void turn(double targetHeading)
 {
     fastTurnPID.reset();
     double elapsedTime = 0;
-    const double timeout = 3000;
+    const double timeout = 1000;
 
     double error = 0;
     double lastError = 0;
@@ -224,54 +224,93 @@ void turn(double targetHeading)
     setDrive(0, 0);
 }
 
-void sturn(double targetHeading)
+float turnkP = 0.038;
+float turnkI = 0.0001;
+float turnkD = 0.35;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// TUNE HERE// TUNE HERE// TUNE HERE// TUNE HERE// TUNE HERE// TUNE HERE//
+//-----------------------------------------------------------------------------------------//
+float error = 0;     // sensor - desired
+float prevError = 0; // position from last loop (previous error)
+float derivative = 0;
+float output = 0;
+float integral = 0;
+float prevoutput = 0;
+float TotalError = 0; // Integral Total error = totalError + error,
+float settlingLimit = 0.2;
+float totalTime = 150;
+bool enabledrivepid;
+float settlingTime = 30;
+
+float turnerror = 0;     // sensor - desired
+float turnPrevError = 0; // pos from last loop
+float turnDerivative = 0.1;
+float turnintegral = 0;
+float turnoutput = 0;
+float prevturnoutput = 0;
+
+float restrain(float num, float min, float max)
 {
-    slowTurnPID.reset();
-    double elapsedTime = 0;
-    const double timeout = 3000;
+    if (num > max)
+        num -= (max - min);
+    if (num < min)
+        num += (max - min);
+    return num;
+}
+bool enableturnPID;
 
-    double error = 0;
-    double lastError = 0;
-    double turnOutput = 0;
+void sturn(double turnTargetvalue)
+{
+    // Inertial19.setHeading(0, degrees);
+    // float startingPoint = Inertial19.heading(degrees);
+    float elapsedtime = 0;
 
-    while (true)
+    enableturnPID = true;
+    while (enableturnPID)
     {
-        double heading = getPose().theta;
-        error = targetHeading - heading;
+        turnerror = restrain(turnTargetvalue - inertial19.heading(degrees), -180, 180);
 
-        // Wrap angle error [-180, 180]
-        if (error > 180)
-            error -= 360;
-        if (error < -180)
-            error += 360;
-
-        // Only accumulate integral if error is small enough
-        if (fabs(error) < 10)
+        if (turnerror < 10 && turnerror > -10)
         {
-            fastTurnPID.integral += error;
+            turnintegral += turnerror;
         }
 
-        // Use your PID class for final output
-        fastTurnPID.prevError = lastError; // For derivative
-        turnOutput = fastTurnPID.kP * error + fastTurnPID.kI * fastTurnPID.integral + fastTurnPID.kD * (error - lastError);
+        turnDerivative = (turnerror - turnPrevError);
 
-        // Clamp output between -1 and 1, then scale to volt
+        turnoutput = (turnkP * turnerror) + (turnkI * turnintegral) + (turnkD * turnDerivative);
 
-        double leftVolt = 11 * turnOutput;
-        double rightVolt = -11 * turnOutput;
+        if (turnoutput > 1)
+            turnoutput = 1;
+        if (turnoutput < -1)
+            turnoutput = -1;
 
-        setDrive(leftVolt, rightVolt);
+        L1.spin(forward, 11 * turnoutput, volt);
+        L2.spin(forward, 11 * turnoutput, volt);
+        L3.spin(forward, 11 * turnoutput, volt);
+        R6.spin(forward, -11 * turnoutput, volt);
+        R7.spin(forward, -11 * turnoutput, volt);
+        R8.spin(forward, -11 * turnoutput, volt);
 
-        // Exit condition (same as old version)
-        if (fabs(error) < 1.0 || elapsedTime >= timeout)
+        if ((turnerror > -1 && turnerror < 1 && turnerror - turnPrevError > -0.2 && turnerror - turnPrevError < 0.2) || (elapsedtime >= 3000))
+        {
             break;
+        }
 
-        lastError = error;
-        elapsedTime += 10;
-        wait(10, msec);
+        prevturnoutput = turnoutput;
+        turnPrevError = turnerror;
+        elapsedtime += 10;
+        task::sleep(10);
     }
-
-    setDrive(0, 0);
+    L1.stop(brake);
+    L2.stop(brake);
+    L3.stop(brake);
+    R6.stop(brake);
+    R7.stop(brake);
+    R8.stop(brake);
 }
 
 /*void turn(double targetHeading)
@@ -374,7 +413,7 @@ void arc(double radiusInches, double angleDeg)
     }
     setDrive(0, 0);
 }
-void moveTo(double targetX, double targetY, double targetTheta, bool turnAtEnd = true)
+void moveTo(double targetX, double targetY, double targetTheta, bool turnAtEnd)
 {
     distPID.reset();
     headingPID.reset();

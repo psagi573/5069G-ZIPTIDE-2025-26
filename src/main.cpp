@@ -823,14 +823,7 @@ sweep(90.0, false);    // Sweep turn right 90° (left side moves)
 void auton() // A function named "auton", in this case, any code in the brackets will run once (unless in a loop) when its autonomous
 {
 
-  turn(90); // Turn 90 degrees
-  wait(5000, msec);
-  turn(270); // Turn 270 degrees
-  wait(5000, msec);
-  turn(180); // Turn 180 degrees
-  wait(5000, msec);
-  turn(0); // Turn 0 degrees
-
+  moveTo(-24, 24, 270, true);
   /*if (autonRoutine == "Red Left")
   {
     // Call your Red Left auton code here
