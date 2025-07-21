@@ -31,7 +31,8 @@ const double accelShort = 60;  // slower accel for short moves
 // PID controllers
 PID distPID(0.15, 0, 0.9, 1.0);
 PID headingPID(0.04, 0.0, 0.33, 1.0);
-PID fastTurnPID(0.04, 0.0001, 0.39, 1.0);
+PID fastTurnPID(0.043, 0.0001, 0.39, 1.0);
+PID slowTurnPID(0.043, 0.0001, 0.39, 100.0);
 
 void setDrive(double left, double right)
 {
@@ -205,6 +206,56 @@ void turn(double targetHeading)
             turnOutput = 1;
         if (turnOutput < -1)
             turnOutput = -1;
+
+        double leftVolt = 11 * turnOutput;
+        double rightVolt = -11 * turnOutput;
+
+        setDrive(leftVolt, rightVolt);
+
+        // Exit condition (same as old version)
+        if (fabs(error) < 1.0 || elapsedTime >= timeout)
+            break;
+
+        lastError = error;
+        elapsedTime += 10;
+        wait(10, msec);
+    }
+
+    setDrive(0, 0);
+}
+
+void sturn(double targetHeading)
+{
+    slowTurnPID.reset();
+    double elapsedTime = 0;
+    const double timeout = 3000;
+
+    double error = 0;
+    double lastError = 0;
+    double turnOutput = 0;
+
+    while (true)
+    {
+        double heading = getPose().theta;
+        error = targetHeading - heading;
+
+        // Wrap angle error [-180, 180]
+        if (error > 180)
+            error -= 360;
+        if (error < -180)
+            error += 360;
+
+        // Only accumulate integral if error is small enough
+        if (fabs(error) < 10)
+        {
+            fastTurnPID.integral += error;
+        }
+
+        // Use your PID class for final output
+        fastTurnPID.prevError = lastError; // For derivative
+        turnOutput = fastTurnPID.kP * error + fastTurnPID.kI * fastTurnPID.integral + fastTurnPID.kD * (error - lastError);
+
+        // Clamp output between -1 and 1, then scale to volt
 
         double leftVolt = 11 * turnOutput;
         double rightVolt = -11 * turnOutput;

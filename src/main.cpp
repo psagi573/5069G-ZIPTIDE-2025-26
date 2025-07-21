@@ -823,11 +823,13 @@ sweep(90.0, false);    // Sweep turn right 90° (left side moves)
 void auton() // A function named "auton", in this case, any code in the brackets will run once (unless in a loop) when its autonomous
 {
 
-  turn(90);
-  wait(100, msec);
-  turn(270);
-  wait(100, msec);
-  turn(180);
+  turn(90); // Turn 90 degrees
+  wait(5000, msec);
+  turn(270); // Turn 270 degrees
+  wait(5000, msec);
+  turn(180); // Turn 180 degrees
+  wait(5000, msec);
+  turn(0); // Turn 0 degrees
 
   /*if (autonRoutine == "Red Left")
   {
@@ -863,27 +865,41 @@ int main()
 
   while (true)
   {
-    Pose pose = getPose();
+    // Get raw encoder values
+    double xEnc = Xaxis.position(turns);
+    double yEnc = Yaxis.position(turns);
+    double heading = inertial19.rotation();
+
+    // Get computed position from your odometry
+    Pose currentPose = getPose();
 
     Brain.Screen.clearScreen();
     Brain.Screen.setCursor(1, 1);
-    Brain.Screen.print("X: %.2f in", pose.x);
+    Brain.Screen.print("X Encoder: %.2f", xEnc);
     Brain.Screen.setCursor(2, 1);
-    Brain.Screen.print("Y: %.2f in", pose.y);
+    Brain.Screen.print("Y Encoder: %.2f", yEnc);
     Brain.Screen.setCursor(3, 1);
-    Brain.Screen.print("Theta: %.1f deg", pose.theta);
+    Brain.Screen.print("Heading: %.2f", heading);
+    Brain.Screen.setCursor(4, 1);
+    Brain.Screen.print("Pose X: %.2f", currentPose.x);
+    Brain.Screen.setCursor(5, 1);
+    Brain.Screen.print("Pose Y: %.2f", currentPose.y);
+    Brain.Screen.setCursor(6, 1);
+    Brain.Screen.print("Pose Theta: %.2f", currentPose.theta);
 
-    Controller1.Screen.clearLine(0); // Optional: clear old output
+    Controller1.Screen.clearLine(0);
     Controller1.Screen.setCursor(1, 1);
-    Controller1.Screen.print("X: %.1f", getPose().x);
-
+    /*Controller1.Screen.print("Xt: %.2f", xEnc);
     Controller1.Screen.setCursor(2, 1);
-    Controller1.Screen.print("Y: %.1f", getPose().y);
-
+    Controller1.Screen.print("Yt: %.2f", yEnc);
+    Controller1.Screen.setCursor(3, 1);*/
+    Controller1.Screen.print("X: %.2f", currentPose.x);
+    Controller1.Screen.setCursor(2, 1);
+    Controller1.Screen.print("Y: %.2f", currentPose.y);
     Controller1.Screen.setCursor(3, 1);
-    Controller1.Screen.print("T: %.1f", getPose().theta);
+    Controller1.Screen.print("t: %.2f", currentPose.theta);
 
-    wait(100, msec); // Update every 100ms
+    wait(100, msec); // Delay to avoid screen spam
     task::sleep(10);
   }
 }
