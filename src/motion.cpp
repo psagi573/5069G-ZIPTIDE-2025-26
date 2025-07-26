@@ -18,7 +18,7 @@ T clamp(T value, T minVal, T maxVal)
 }
 
 // Constants
-const double wheelTrack = 14.8; // in inches (left-right distance)
+const double wheelTrack = 14.5; // in inches (left-right distance)
 
 const double maxVelDefault = 45; // max linear speed in inches/sec
 const double accelDefault = 120; // acceleration in inches/sec^2
@@ -32,7 +32,8 @@ const double accelShort = 60;  // slower accel for short moves
 PID distPID(0.15, 0, 0.9, 1.0);
 PID headingPID(0.04, 0.0, 0.33, 1.0);
 PID fastTurnPID(0.043, 0.0001, 0.39, 1.0);
-PID slowTurnPID(0.043, 0.0001, 0.39, 100.0);
+PID slowdistPID(0.15, 0.0, 0.9, 100.0);
+PID slowheadingPID(0.04, 0.0, 0.33, 100.0);
 
 void setDrive(double left, double right)
 {
@@ -313,56 +314,10 @@ void sturn(double turnTargetvalue)
     R8.stop(brake);
 }
 
-/*void turn(double targetHeading)
-{
-    fastTurnPID.reset();
-    double turnIntegral = 0;
-    double lastError = 0;
-    double elapsedTime = 0;
-    const double timeout = 3000;
-
-    while (true)
-    {
-        double heading = getPose().theta;
-        double error = targetHeading - heading;
-
-        // Wrap error to [-180, 180]
-        if (error > 180)
-            error -= 360;
-        if (error < -180)
-            error += 360;
-
-        // Integral restraint (like your old code)
-        if (fabs(error) < 10 && fabs(error) > 10)
-            turnIntegral += error;
-
-        // Compute PID using manual integral and derivative
-        double derivative = error - lastError;
-
-        // Manually build the PID output using class constants
-        double output = (0.7 * error) + (0.0 * turnIntegral) + (0.8 * derivative);
-
-        output = clamp(output, -100.0, 100.0);
-        output = output / 100;     // converts to decimal units
-        output = output * 11;      // converts to volt units
-        setDrive(output, -output); // Left / Right voltages for turn
-
-        // Break condition (very similar to last year)
-        if (fabs(error) < 1.5 && fabs(derivative) < 0.5)
-            break;
-
-        lastError = error;
-        elapsedTime += 10;
-        wait(10, msec);
-    }
-
-    setDrive(0, 0);
-}*/
-
 void arc(double radiusInches, double angleDeg)
 {
-    distPID.reset();
-    headingPID.reset();
+    slowdistPID.reset();
+    slowheadingPID.reset();
 
     // Compute arc length
     double arcLength = 2 * M_PI * radiusInches * (angleDeg / 360.0);
@@ -404,7 +359,7 @@ void arc(double radiusInches, double angleDeg)
 
         double direction = (remaining >= 0) ? 1.0 : -1.0;
         double velLimit = profile.getTargetVelocity(fabs(remaining), traveled, direction);
-        linearOut = clamp(linearOut, -velLimit, velLimit);
+        // linearOut = clamp(linearOut, -velLimit, velLimit);
 
         double left = linearOut * turnRatio;
         double right = linearOut;

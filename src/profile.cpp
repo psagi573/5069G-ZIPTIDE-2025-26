@@ -12,8 +12,6 @@ double Profile::getTargetVelocity(double distRemaining, double distTraveled, dou
     // Avoid instability when very small
     if (distTraveled < 0.5)
         distTraveled = 1;
-    if (distRemaining < 0.001)
-        distRemaining = 0;
 
     // Compute speed based on acceleration limit
     double accelLimit = sqrt(2 * accel * distTraveled);  // speed ramp up
