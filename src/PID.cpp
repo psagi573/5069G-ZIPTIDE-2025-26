@@ -13,12 +13,11 @@ T clamp(T value, T minVal, T maxVal)
     return value;
 }
 
-PID::PID(double p, double i, double d, double cap)
+PID::PID(double p, double i, double d)
 {
     kP = p;
     kI = i;
     kD = d;
-    outputCap = cap;
     integral = 0;
     prevError = 0;
 }
@@ -29,22 +28,28 @@ void PID::reset()
     prevError = 0;
 }
 
-double PID::compute(double target, double current)
+double PID::compute(double target, double current, bool turn)
 {
     double error = target - current;
-    integral += error;
 
-    double integralCap = 50.0;
+    if (turn)
+    {
+        // Wrap angle error to [-180, 180]
+        if (error > 180)
+            error -= 360;
+        if (error < -180)
+            error += 360;
+    }
 
-    integral = clamp(integral, -integralCap, integralCap);
+    if (fabs(error) < 10)
+    {
+        integral += error;
+    }
 
     double derivative = error - prevError;
     prevError = error;
 
     double output = (error * kP) + (integral * kI) + (derivative * kD);
-    // Clamp output manually since std::clamp may not be available
-
-    output = clamp(output, -outputCap, outputCap);
 
     return output;
 }

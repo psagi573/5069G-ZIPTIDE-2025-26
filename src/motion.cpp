@@ -29,11 +29,9 @@ const double accelShort = 60;  // slower accel for short moves
 // Motor groups
 
 // PID controllers
-PID distPID(0.15, 0, 0.9, 1.0);
-PID headingPID(0.04, 0.0, 0.33, 1.0);
-PID fastTurnPID(0.043, 0.0001, 0.39, 1.0);
-PID slowdistPID(0.15, 0.0, 0.9, 100.0);
-PID slowheadingPID(0.04, 0.0, 0.33, 100.0);
+PID distPID(0.15, 0, 0.9);
+PID headingPID(0.04, 0.0, 0.33);
+PID fastTurnPID(0.043, 0.0001, 0.39);
 
 void setDrive(double left, double right)
 {
@@ -177,30 +175,12 @@ void turn(double targetHeading)
     double elapsedTime = 0;
     const double timeout = 1000;
 
-    double error = 0;
-    double lastError = 0;
-    double turnOutput = 0;
-
     while (true)
     {
-        double heading = getPose().theta;
-        error = targetHeading - heading;
+        Pose pose = getPose();
+        double heading = pose.theta;
 
-        // Wrap angle error [-180, 180]
-        if (error > 180)
-            error -= 360;
-        if (error < -180)
-            error += 360;
-
-        // Only accumulate integral if error is small enough
-        if (fabs(error) < 10)
-        {
-            fastTurnPID.integral += error;
-        }
-
-        // Use your PID class for final output
-        fastTurnPID.prevError = lastError; // For derivative
-        turnOutput = fastTurnPID.kP * error + fastTurnPID.kI * fastTurnPID.integral + fastTurnPID.kD * (error - lastError);
+        double turnOutput = fastTurnPID.compute(targetHeading, heading, true);
 
         // Clamp output between -1 and 1, then scale to volts
         if (turnOutput > 1)
@@ -213,16 +193,143 @@ void turn(double targetHeading)
 
         setDrive(leftVolt, rightVolt);
 
-        // Exit condition (same as old version)
-        if (fabs(error) < 1.0 || elapsedTime >= timeout)
+        if (fabs(fastTurnPID.error) < 1.0 || elapsedTime >= timeout)
             break;
 
-        lastError = error;
         elapsedTime += 10;
         wait(10, msec);
     }
 
     setDrive(0, 0);
+}
+
+void arc(double radiusInches, double angleDeg)
+{
+    distPID.reset();
+    headingPID.reset();
+
+    // Compute arc length
+    double arcLength = 2 * M_PI * radiusInches * (angleDeg / 360.0);
+
+    double startX = getPose().x;
+    double startY = getPose().y;
+    double target = arcLength;
+    double elapsedTime = 0;
+
+    // Ratio between left and right wheels
+    double turnRatio = (radiusInches - (wheelTrack / 2.0)) / (radiusInches + (wheelTrack / 2.0));
+
+    while (true)
+    {
+        Pose pose = getPose();
+        double dx = pose.x - startX;
+        double dy = pose.y - startY;
+        double traveled = sqrt(dx * dx + dy * dy);
+        double remaining = target - traveled;
+
+        if (fabs(remaining) < 1.0 || elapsedTime >= 3000)
+            break;
+
+        double linearOut = distPID.compute(target, traveled);
+
+        if (linearOut > 1.0)
+            linearOut = 1.0;
+        if (linearOut < -1.0)
+            linearOut = -1.0;
+
+        linearOut = linearOut * 11.0;
+
+        double left = linearOut * turnRatio;
+        double right = linearOut;
+        setDrive(left, right);
+
+        elapsedTime += 10;
+        wait(10, msec);
+    }
+    setDrive(0, 0);
+}
+
+void moveTo(double targetX, double targetY, double targetTheta, bool turnAtEnd)
+{
+    distPID.reset();
+    headingPID.reset();
+
+    Pose start = getPose();
+    double totalDist = hypot(targetX - start.x, targetY - start.y);
+
+    // Choose profile based on distance
+    double maxVelLocal = (totalDist < 12.0) ? maxVelShort : maxVelDefault;
+    double accelLocal = (totalDist < 12.0) ? accelShort : accelDefault;
+    Profile profile(maxVelLocal, accelLocal);
+
+    double prevError = totalDist;
+    double elapsedTime = 0;
+    const double timeout = 2000;        // ms
+    const double settleThreshold = 0.5; // inches
+    const double slopeThreshold = 0.2;  // inches
+
+    while (true)
+    {
+        Pose pose = getPose();
+
+        double dx = targetX - pose.x;
+        double dy = targetY - pose.y;
+
+        double remainingDist = hypot(dx, dy);
+        double traveled = totalDist - remainingDist;
+        double error = totalDist - traveled;
+
+        double direction = (error >= 0) ? 1.0 : -1.0;
+
+        // Break condition: close and stable, or timeout
+        double errorDelta = fabs(prevError - error);
+        if ((remainingDist < settleThreshold && errorDelta < slopeThreshold) || elapsedTime > timeout)
+        {
+            break;
+        }
+
+        // Calculate linear PID and velocity profile limit
+        double linearOut = distPID.compute(totalDist, traveled);
+        double velLimit = profile.getTargetVelocity(fabs(error), traveled, direction);
+        if (velLimit < 1.0)
+            velLimit = 1.0;
+        linearOut = clamp(linearOut, -velLimit, velLimit);
+
+        // Kickstart: if output is tiny but still far, push minimum voltage
+        if (fabs(linearOut) < 1.0 && fabs(error) > 1.0)
+        {
+            linearOut = direction * 1.0;
+        }
+
+        // Calculate heading and heading error normalized [-180,180]
+        double desiredHeading = atan2(dy, dx) * (180.0 / M_PI);
+        double headingError = desiredHeading - pose.theta;
+        if (headingError > 180)
+            headingError -= 360;
+        if (headingError < -180)
+            headingError += 360;
+
+        // Heading PID — **NO minus sign here**, matches your turn()
+        double turnOut = headingPID.compute(0, headingError);
+
+        // Combine linear and turn outputs for left/right voltages
+        double left = linearOut - turnOut;
+        double right = linearOut + turnOut;
+
+        setDrive(left, right);
+
+        prevError = error;
+        wait(10, msec);
+        elapsedTime += 10;
+    }
+
+    setDrive(0, 0);
+
+    // Optional final turn to targetTheta
+    if (turnAtEnd)
+    {
+        turn(targetTheta);
+    }
 }
 
 float turnkP = 0.038;
@@ -312,141 +419,4 @@ void sturn(double turnTargetvalue)
     R6.stop(brake);
     R7.stop(brake);
     R8.stop(brake);
-}
-
-void arc(double radiusInches, double angleDeg)
-{
-    slowdistPID.reset();
-    slowheadingPID.reset();
-
-    // Compute arc length
-    double arcLength = 2 * M_PI * radiusInches * (angleDeg / 360.0);
-
-    double maxVelLocal;
-    double accelLocal;
-
-    if (arcLength < 6.0)
-    {
-        maxVelLocal = maxVelShort;
-        accelLocal = accelShort;
-    }
-    else
-    {
-        maxVelLocal = maxVelDefault;
-        accelLocal = accelDefault;
-    }
-
-    Profile profile(maxVelLocal, accelLocal);
-
-    double startX = getPose().x;
-    double startY = getPose().y;
-    double target = arcLength;
-
-    // Ratio between left and right wheels
-    double turnRatio = (radiusInches - (wheelTrack / 2.0)) / (radiusInches + (wheelTrack / 2.0));
-
-    while (true)
-    {
-        Pose pose = getPose();
-        double dx = pose.x - startX;
-        double dy = pose.y - startY;
-        double traveled = sqrt(dx * dx + dy * dy);
-        double remaining = target - traveled;
-        if (remaining <= 0.5)
-            break;
-
-        double linearOut = distPID.compute(target, traveled);
-
-        double direction = (remaining >= 0) ? 1.0 : -1.0;
-        double velLimit = profile.getTargetVelocity(fabs(remaining), traveled, direction);
-        // linearOut = clamp(linearOut, -velLimit, velLimit);
-
-        double left = linearOut * turnRatio;
-        double right = linearOut;
-        setDrive(left, right);
-        wait(10, msec);
-    }
-    setDrive(0, 0);
-}
-void moveTo(double targetX, double targetY, double targetTheta, bool turnAtEnd)
-{
-    distPID.reset();
-    headingPID.reset();
-
-    Pose start = getPose();
-    double totalDist = hypot(targetX - start.x, targetY - start.y);
-
-    // Choose profile based on distance
-    double maxVelLocal = (totalDist < 12.0) ? maxVelShort : maxVelDefault;
-    double accelLocal = (totalDist < 12.0) ? accelShort : accelDefault;
-    Profile profile(maxVelLocal, accelLocal);
-
-    double prevError = totalDist;
-    double elapsedTime = 0;
-    const double timeout = 2000;        // ms
-    const double settleThreshold = 0.5; // inches
-    const double slopeThreshold = 0.2;  // inches
-
-    while (true)
-    {
-        Pose pose = getPose();
-
-        double dx = targetX - pose.x;
-        double dy = targetY - pose.y;
-
-        double remainingDist = hypot(dx, dy);
-        double traveled = totalDist - remainingDist;
-        double error = totalDist - traveled;
-
-        double direction = (error >= 0) ? 1.0 : -1.0;
-
-        // Break condition: close and stable, or timeout
-        double errorDelta = fabs(prevError - error);
-        if ((remainingDist < settleThreshold && errorDelta < slopeThreshold) || elapsedTime > timeout)
-        {
-            break;
-        }
-
-        // Calculate linear PID and velocity profile limit
-        double linearOut = distPID.compute(totalDist, traveled);
-        double velLimit = profile.getTargetVelocity(fabs(error), traveled, direction);
-        if (velLimit < 1.0)
-            velLimit = 1.0;
-        linearOut = clamp(linearOut, -velLimit, velLimit);
-
-        // Kickstart: if output is tiny but still far, push minimum voltage
-        if (fabs(linearOut) < 1.0 && fabs(error) > 1.0)
-        {
-            linearOut = direction * 1.0;
-        }
-
-        // Calculate heading and heading error normalized [-180,180]
-        double desiredHeading = atan2(dy, dx) * (180.0 / M_PI);
-        double headingError = desiredHeading - pose.theta;
-        if (headingError > 180)
-            headingError -= 360;
-        if (headingError < -180)
-            headingError += 360;
-
-        // Heading PID — **NO minus sign here**, matches your turn()
-        double turnOut = headingPID.compute(0, headingError);
-
-        // Combine linear and turn outputs for left/right voltages
-        double left = linearOut - turnOut;
-        double right = linearOut + turnOut;
-
-        setDrive(left, right);
-
-        prevError = error;
-        wait(10, msec);
-        elapsedTime += 10;
-    }
-
-    setDrive(0, 0);
-
-    // Optional final turn to targetTheta
-    if (turnAtEnd)
-    {
-        turn(targetTheta);
-    }
 }
