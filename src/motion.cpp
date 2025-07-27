@@ -173,7 +173,7 @@ void turn(double targetHeading)
 {
     fastTurnPID.reset();
     double elapsedTime = 0;
-    const double timeout = 1000;
+    const double timeout = 10000;
 
     while (true)
     {
@@ -181,6 +181,8 @@ void turn(double targetHeading)
         double heading = pose.theta;
 
         double turnOutput = fastTurnPID.compute(targetHeading, heading, true);
+
+        double remaining = targetHeading - heading;
 
         // Clamp output between -1 and 1, then scale to volts
         if (turnOutput > 1)
@@ -191,10 +193,10 @@ void turn(double targetHeading)
         double leftVolt = 11 * turnOutput;
         double rightVolt = -11 * turnOutput;
 
-        setDrive(leftVolt, rightVolt);
-
-        if (fabs(fastTurnPID.error) < 1.0 || elapsedTime >= timeout)
+        if (fabs(remaining) < 1.0 || elapsedTime >= timeout)
             break;
+
+        setDrive(leftVolt, rightVolt);
 
         elapsedTime += 10;
         wait(10, msec);
@@ -332,91 +334,56 @@ void moveTo(double targetX, double targetY, double targetTheta, bool turnAtEnd)
     }
 }
 
-float turnkP = 0.038;
-float turnkI = 0.0001;
-float turnkD = 0.35;
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// TUNE HERE// TUNE HERE// TUNE HERE// TUNE HERE// TUNE HERE// TUNE HERE//
-//-----------------------------------------------------------------------------------------//
-float error = 0;     // sensor - desired
-float prevError = 0; // position from last loop (previous error)
-float derivative = 0;
-float output = 0;
-float integral = 0;
-float prevoutput = 0;
-float TotalError = 0; // Integral Total error = totalError + error,
-float settlingLimit = 0.2;
-float totalTime = 150;
-bool enabledrivepid;
-float settlingTime = 30;
-
-float turnerror = 0;     // sensor - desired
-float turnPrevError = 0; // pos from last loop
-float turnDerivative = 0.1;
-float turnintegral = 0;
-float turnoutput = 0;
-float prevturnoutput = 0;
-
-float restrain(float num, float min, float max)
+void sturn(double stargetHeading)
 {
-    if (num > max)
-        num -= (max - min);
-    if (num < min)
-        num += (max - min);
-    return num;
-}
-bool enableturnPID;
+    fastTurnPID.reset();
+    double elapsedTime = 0;
+    const double timeout = 1000;
 
-void sturn(double turnTargetvalue)
-{
-    // Inertial19.setHeading(0, degrees);
-    // float startingPoint = Inertial19.heading(degrees);
-    float elapsedtime = 0;
+    double error = 0;
+    double lastError = 0;
+    double turnOutput = 0;
 
-    enableturnPID = true;
-    while (enableturnPID)
+    while (true)
     {
-        turnerror = restrain(turnTargetvalue - inertial19.heading(degrees), -180, 180);
+        double heading = getPose().theta;
+        error = stargetHeading - heading;
 
-        if (turnerror < 10 && turnerror > -10)
+        // Wrap angle error [-180, 180]
+        if (error > 180)
+            error -= 360;
+        if (error < -180)
+            error += 360;
+
+        // Only accumulate integral if error is small enough
+        if (fabs(error) < 10)
         {
-            turnintegral += turnerror;
+            fastTurnPID.integral += error;
         }
 
-        turnDerivative = (turnerror - turnPrevError);
+        // Use your PID class for final output
+        fastTurnPID.prevError = lastError; // For derivative
+        turnOutput = fastTurnPID.kP * error + fastTurnPID.kI * fastTurnPID.integral + fastTurnPID.kD * (error - lastError);
 
-        turnoutput = (turnkP * turnerror) + (turnkI * turnintegral) + (turnkD * turnDerivative);
+        // Clamp output between -1 and 1, then scale to volts
+        if (turnOutput > 1)
+            turnOutput = 1;
+        if (turnOutput < -1)
+            turnOutput = -1;
 
-        if (turnoutput > 1)
-            turnoutput = 1;
-        if (turnoutput < -1)
-            turnoutput = -1;
+        double leftVolt = 11 * turnOutput;
+        double rightVolt = -11 * turnOutput;
 
-        L1.spin(forward, 11 * turnoutput, volt);
-        L2.spin(forward, 11 * turnoutput, volt);
-        L3.spin(forward, 11 * turnoutput, volt);
-        R6.spin(forward, -11 * turnoutput, volt);
-        R7.spin(forward, -11 * turnoutput, volt);
-        R8.spin(forward, -11 * turnoutput, volt);
+        setDrive(leftVolt, rightVolt);
 
-        if ((turnerror > -1 && turnerror < 1 && turnerror - turnPrevError > -0.2 && turnerror - turnPrevError < 0.2) || (elapsedtime >= 3000))
-        {
+        // Exit condition (same as old version)
+        if (fabs(error) < 1.0 || elapsedTime >= timeout)
             break;
-        }
 
-        prevturnoutput = turnoutput;
-        turnPrevError = turnerror;
-        elapsedtime += 10;
-        task::sleep(10);
+        lastError = error;
+        elapsedTime += 10;
+        wait(10, msec);
     }
-    L1.stop(brake);
-    L2.stop(brake);
-    L3.stop(brake);
-    R6.stop(brake);
-    R7.stop(brake);
-    R8.stop(brake);
+
+    setDrive(0, 0);
 }
