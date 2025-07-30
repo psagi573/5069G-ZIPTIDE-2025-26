@@ -208,7 +208,6 @@ void turn(double targetHeading)
 void arc(double radiusInches, double angleDeg)
 {
     distPID.reset();
-    headingPID.reset();
 
     // Compute arc length
     double arcLength = 2 * M_PI * radiusInches * (angleDeg / 360.0);
@@ -229,20 +228,31 @@ void arc(double radiusInches, double angleDeg)
         double traveled = sqrt(dx * dx + dy * dy);
         double remaining = target - traveled;
 
-        if (fabs(remaining) < 1.0 || elapsedTime >= 3000)
-            break;
-
         double linearOut = distPID.compute(target, traveled);
 
-        if (linearOut > 1.0)
-            linearOut = 1.0;
-        if (linearOut < -1.0)
-            linearOut = -1.0;
+        linearOut = clamp(linearOut, -1.0, 1.0);
 
         linearOut = linearOut * 11.0;
 
-        double left = linearOut * turnRatio;
+        int direction = (angleDeg >= 0) ? 1 : -1;
+
+        linearOut *= direction;
+
+        double left = linearOut;
         double right = linearOut;
+
+        if (angleDeg > 0)
+        {
+            left *= turnRatio;
+        }
+        else
+        {
+            right *= turnRatio;
+        }
+
+        if (fabs(remaining) < 1.0 || elapsedTime >= 3000)
+            break;
+
         setDrive(left, right);
 
         elapsedTime += 10;
