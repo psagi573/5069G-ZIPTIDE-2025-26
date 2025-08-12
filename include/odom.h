@@ -1,12 +1,20 @@
-#include "vex.h"
 #pragma once
 
+#include "vex.h"
+
+// Pose struct to represent the robot position and heading
 struct Pose
 {
-    double x;     // horazontal position in inches
-    double y;     // vertical position in inches
-    double theta; // rotational position in degrees
+    double x;
+    double y;
+    double theta; // degrees [0,360)
 };
 
+// Initialize and start odometry tracking
 void startOdom(vex::rotation &xSensor, vex::rotation &ySensor, vex::inertial &imu);
+
+// Stop odometry tracking cleanly
+void stopOdom();
+
+// Get the current estimated robot pose (position + heading)
 Pose getPose();

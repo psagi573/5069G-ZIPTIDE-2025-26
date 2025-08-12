@@ -30,7 +30,6 @@ const double accelShort = 60;  // slower accel for short moves
 
 // PID controllers
 PID distPID(0.15, 0, 0.9);
-PID headingPID(0.04, 0.0, 0.33);
 PID fastTurnPID(0.043, 0.0001, 0.39);
 
 void setDrive(double left, double right)
@@ -48,81 +47,8 @@ void setDrive(double left, double right)
     R7.spin(fwd, right, volt);
     R8.spin(fwd, right, volt);
 }
-void longdrive(double distInches, double headingDeg)
-{
-    distPID.reset();
-    headingPID.reset();
 
-    Profile profile(maxVelDefault, accelDefault);
-
-    double startX = getPose().x;
-    double startY = getPose().y;
-    double target = distInches;
-
-    double lastError = 0;
-    int elapsed = 0;
-    const int timeout = 3000;
-
-    while (true)
-    {
-        Pose pose = getPose();
-        double dx = pose.x - startX;
-        double dy = pose.y - startY;
-        double traveled = sqrt(dx * dx + dy * dy);
-        double error = target - traveled;
-
-        // Compute linear output (PID)
-        double linearOut = distPID.compute(target, traveled);
-        double direction = (error >= 0) ? 1.0 : -1.0;
-
-        if ((fabs(error) < 0.5 && fabs(error - lastError) < 0.1) || elapsed > timeout)
-            break;
-
-        // If using motion profile, apply velocity limit and clamp output
-        // Motion profiling clamp only
-        double velLimit = profile.getTargetVelocity(fabs(error), traveled, direction);
-        linearOut = clamp(linearOut, -velLimit, velLimit);
-
-        // Clamp linear output to ±1 before scaling volts for smooth control
-        double turnOut = 0.0;
-        double headingError = headingDeg - pose.theta;
-
-        // Normalize heading error to [-180, 180]
-        if (headingError > 180)
-            headingError -= 360;
-        if (headingError < -180)
-            headingError += 360;
-
-        if (fabs(headingError) > 5)
-        {
-            turnOut = headingPID.compute(headingError, 0);
-
-            double headingScale = 0.02; // Tunable
-            turnOut *= fabs(headingError) * headingScale;
-
-            // Soft cap to avoid overcorrection
-            turnOut = clamp(turnOut, -0.3, 0.3); // ~3.3V max correction
-        }
-
-        // Scale outputs from PID range [-1, 1] to volts [-11, 11]
-        linearOut = linearOut * 11.0;
-        turnOut = turnOut * 11.0;
-
-        double leftVolt = linearOut - turnOut;
-        double rightVolt = linearOut + turnOut;
-
-        setDrive(leftVolt, rightVolt);
-
-        // Exit conditions: close enough or timeout
-        lastError = error;
-        elapsed += 10;
-        wait(10, msec);
-    }
-
-    setDrive(0, 0);
-}
-
-void fastdrive(double distInches)
+void drive(double distInches)
 {
     distPID.reset();
 
@@ -208,189 +134,61 @@ void turn(double targetHeading)
 void arc(double radiusInches, double angleDeg)
 {
     distPID.reset();
-
-    // Compute arc length
-    double arcLength = 2 * M_PI * radiusInches * (angleDeg / 360.0);
-
-    double startX = getPose().x;
-    double startY = getPose().y;
-    double target = arcLength;
     double elapsedTime = 0;
+    const double maxTime = 3000;
+    const double distExit = 0.5;
 
-    // Ratio between left and right wheels
-    double turnRatio = (radiusInches - (wheelTrack / 2.0)) / (radiusInches + (wheelTrack / 2.0));
+    // Calculate the arc length
+    double arcLength = 2.0 * M_PI * radiusInches * (angleDeg / 360.0);
+
+    Pose startPose = getPose();
+    double targetDistance = fabs(arcLength);
+
+    //  wheel ratio for arc
+    double turnRatio = (radiusInches - (wheelTrack / 2.0)) /
+                       (radiusInches + (wheelTrack / 2.0));
+
+    // Determine direction of turn
+    int turnDir = (angleDeg >= 0) ? 1 : -1;
 
     while (true)
     {
         Pose pose = getPose();
-        double dx = pose.x - startX;
-        double dy = pose.y - startY;
+        double dx = pose.x - startPose.x;
+        double dy = pose.y - startPose.y;
         double traveled = sqrt(dx * dx + dy * dy);
-        double remaining = target - traveled;
+        double remaining = targetDistance - traveled;
 
-        double linearOut = distPID.compute(target, traveled);
+        // Exit condition
+        if (fabs(remaining) <= distExit || elapsedTime >= maxTime)
+        {
+            break;
+        }
 
+        // PID output for forward motion
+        double linearOut = distPID.compute(targetDistance, traveled);
+
+        // Clamp to motor safe range (-1 to 1)
         linearOut = clamp(linearOut, -1.0, 1.0);
 
-        linearOut = linearOut * 11.0;
+        // Convert to volts for VEX
+        linearOut *= 11.0;
 
-        int direction = (angleDeg >= 0) ? 1 : -1;
+        // Apply turn ratio
+        double leftOut = linearOut;
+        double rightOut = linearOut;
 
-        linearOut *= direction;
-
-        double left = linearOut;
-        double right = linearOut;
-
-        if (angleDeg > 0)
-        {
-            left *= turnRatio;
+        if (turnDir > 0)
+        { // Turning right
+            leftOut *= turnRatio;
         }
         else
-        {
-            right *= turnRatio;
+        { // Turning left
+            rightOut *= turnRatio;
         }
 
-        if (fabs(remaining) < 1.0 || elapsedTime >= 3000)
-            break;
+        setDrive(leftOut, rightOut);
 
-        setDrive(left, right);
-
-        elapsedTime += 10;
-        wait(10, msec);
-    }
-    setDrive(0, 0);
-}
-
-void moveTo(double targetX, double targetY, double targetTheta, bool turnAtEnd)
-{
-    distPID.reset();
-    headingPID.reset();
-
-    Pose start = getPose();
-    double totalDist = hypot(targetX - start.x, targetY - start.y);
-
-    // Choose profile based on distance
-    double maxVelLocal = (totalDist < 12.0) ? maxVelShort : maxVelDefault;
-    double accelLocal = (totalDist < 12.0) ? accelShort : accelDefault;
-    Profile profile(maxVelLocal, accelLocal);
-
-    double prevError = totalDist;
-    double elapsedTime = 0;
-    const double timeout = 2000;        // ms
-    const double settleThreshold = 0.5; // inches
-    const double slopeThreshold = 0.2;  // inches
-
-    while (true)
-    {
-        Pose pose = getPose();
-
-        double dx = targetX - pose.x;
-        double dy = targetY - pose.y;
-
-        double remainingDist = hypot(dx, dy);
-        double traveled = totalDist - remainingDist;
-        double error = totalDist - traveled;
-
-        double direction = (error >= 0) ? 1.0 : -1.0;
-
-        // Break condition: close and stable, or timeout
-        double errorDelta = fabs(prevError - error);
-        if ((remainingDist < settleThreshold && errorDelta < slopeThreshold) || elapsedTime > timeout)
-        {
-            break;
-        }
-
-        // Calculate linear PID and velocity profile limit
-        double linearOut = distPID.compute(totalDist, traveled);
-        double velLimit = profile.getTargetVelocity(fabs(error), traveled, direction);
-        if (velLimit < 1.0)
-            velLimit = 1.0;
-        linearOut = clamp(linearOut, -velLimit, velLimit);
-
-        // Kickstart: if output is tiny but still far, push minimum voltage
-        if (fabs(linearOut) < 1.0 && fabs(error) > 1.0)
-        {
-            linearOut = direction * 1.0;
-        }
-
-        // Calculate heading and heading error normalized [-180,180]
-        double desiredHeading = atan2(dy, dx) * (180.0 / M_PI);
-        double headingError = desiredHeading - pose.theta;
-        if (headingError > 180)
-            headingError -= 360;
-        if (headingError < -180)
-            headingError += 360;
-
-        // Heading PID — **NO minus sign here**, matches your turn()
-        double turnOut = headingPID.compute(0, headingError);
-
-        // Combine linear and turn outputs for left/right voltages
-        double left = linearOut - turnOut;
-        double right = linearOut + turnOut;
-
-        setDrive(left, right);
-
-        prevError = error;
-        wait(10, msec);
-        elapsedTime += 10;
-    }
-
-    setDrive(0, 0);
-
-    // Optional final turn to targetTheta
-    if (turnAtEnd)
-    {
-        turn(targetTheta);
-    }
-}
-
-void sturn(double stargetHeading)
-{
-    fastTurnPID.reset();
-    double elapsedTime = 0;
-    const double timeout = 1000;
-
-    double error = 0;
-    double lastError = 0;
-    double turnOutput = 0;
-
-    while (true)
-    {
-        double heading = getPose().theta;
-        error = stargetHeading - heading;
-
-        // Wrap angle error [-180, 180]
-        if (error > 180)
-            error -= 360;
-        if (error < -180)
-            error += 360;
-
-        // Only accumulate integral if error is small enough
-        if (fabs(error) < 10)
-        {
-            fastTurnPID.integral += error;
-        }
-
-        // Use your PID class for final output
-        fastTurnPID.prevError = lastError; // For derivative
-        turnOutput = fastTurnPID.kP * error + fastTurnPID.kI * fastTurnPID.integral + fastTurnPID.kD * (error - lastError);
-
-        // Clamp output between -1 and 1, then scale to volts
-        if (turnOutput > 1)
-            turnOutput = 1;
-        if (turnOutput < -1)
-            turnOutput = -1;
-
-        double leftVolt = 11 * turnOutput;
-        double rightVolt = -11 * turnOutput;
-
-        setDrive(leftVolt, rightVolt);
-
-        // Exit condition (same as old version)
-        if (fabs(error) < 1.0 || elapsedTime >= timeout)
-            break;
-
-        lastError = error;
         elapsedTime += 10;
         wait(10, msec);
     }
