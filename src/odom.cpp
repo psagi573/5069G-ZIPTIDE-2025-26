@@ -20,7 +20,7 @@ inertial *imuSensor;
 
 // Robot geometry
 const double xOffset = 0;   // inches from center to X (lateral) tracker 0 inches
-const double yOffset = 1.9; // inches from center to Y (longitudinal) tracker 1.8 inches
+const double yOffset = 1.9; // inches from center to Y (longitudinal) tracker 1.9 inches
 
 // Wheel settings
 const double odomWheelDiameter = 2.0;
