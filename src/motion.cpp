@@ -58,7 +58,7 @@ void drive(double distInches)
 
     double lastError = 0;
     int elapsed = 0;
-    const int timeout = 3000;
+    const int timeout = 1000;
 
     while (true)
     {
@@ -99,7 +99,7 @@ void turn(double targetHeading)
 {
     fastTurnPID.reset();
     double elapsedTime = 0;
-    const double timeout = 10000;
+    const double timeout = 1000;
 
     while (true)
     {
