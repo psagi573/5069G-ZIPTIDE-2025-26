@@ -48,6 +48,26 @@ void setDrive(double left, double right)
     R8.spin(fwd, right, volt);
 }
 
+void stop()
+{
+    // Stop all motors
+    L1.stop(brake);
+    L2.stop(brake);
+    L3.stop(brake);
+    R6.stop(brake);
+    R7.stop(brake);
+    R8.stop(brake);
+}
+
+double minVolt(double v)
+{
+    if (v > -3.0 && v < 0)
+        return -3.0;
+    if (v > 0 && v < 3.0)
+        return 3.0;
+    return v;
+}
+
 void drive(double distInches)
 {
     distPID.reset();
@@ -58,7 +78,7 @@ void drive(double distInches)
 
     double lastError = 0;
     int elapsed = 0;
-    const int timeout = 1000;
+    const int timeout = 3000;
 
     while (true)
     {
@@ -78,6 +98,8 @@ void drive(double distInches)
 
         linearOut = linearOut * 11.0;
 
+        linearOut = minVolt(linearOut);
+
         double leftVolt = linearOut;
         double rightVolt = linearOut;
 
@@ -92,14 +114,14 @@ void drive(double distInches)
         wait(10, msec);
     }
 
-    setDrive(0, 0);
+    stop();
 }
 
 void turn(double targetHeading)
 {
     fastTurnPID.reset();
     double elapsedTime = 0;
-    const double timeout = 1000;
+    const double timeout = 3000;
 
     while (true)
     {
@@ -119,6 +141,9 @@ void turn(double targetHeading)
         double leftVolt = 11 * turnOutput;
         double rightVolt = -11 * turnOutput;
 
+        leftVolt = minVolt(leftVolt);
+        rightVolt = minVolt(rightVolt);
+
         if (fabs(remaining) < 1.0 || elapsedTime >= timeout)
             break;
 
@@ -128,7 +153,7 @@ void turn(double targetHeading)
         wait(10, msec);
     }
 
-    setDrive(0, 0);
+    stop();
 }
 
 void arc(double radiusInches, double angleDeg)
@@ -193,5 +218,5 @@ void arc(double radiusInches, double angleDeg)
         wait(10, msec);
     }
 
-    setDrive(0, 0);
+    stop();
 }
