@@ -6,19 +6,17 @@ extern brain Brain;
 extern controller Controller1;
 extern motor L1;
 extern motor R6;
-extern rotation Yaxis;
+/*extern rotation Yaxis;
 extern rotation Xaxis;
-extern inertial inertial19;
+extern inertial inertial19;*/
 extern motor L2;
 extern motor L3;
 extern motor R7;
 extern motor R8;
 extern controller Controller2;
-extern digital_out mogo;
-extern digital_out WallStake;
-extern digital_out Doinker;
-extern digital_out Hood;
-extern motor Hook;
+extern digital_out Lifter;
+extern motor Out;
+extern motor Take;
 extern motor RollerIntake;
 
 /**
