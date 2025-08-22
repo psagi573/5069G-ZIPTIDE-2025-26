@@ -69,7 +69,7 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
   R6.setVelocity(600, rpm);
   R7.setVelocity(600, rpm);
   R8.setVelocity(600, rpm);
-  outake.setVelocity(200, rpm);
+  outake.setVelocity(600, rpm);
   RollerIntake.setVelocity(600, rpm);
 
   /*
@@ -81,8 +81,8 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
   while (true)
   {
     // Arcade Control
-    R.spin(forward, tovolt(Controller1.Axis3.position(percent) - (Controller1.Axis1.position(pct) * 2)), volt);     // controlls any motors on the right side of the drivetrain
-    L.spin(forward, tovolt(Controller1.Axis3.position(percent) + (Controller1.Axis1.position(percent) * 2)), volt); // controlls any motors on the left side of the drivetrain
+    R.spin(forward, tovolt(Controller1.Axis3.position(percent) - (Controller1.Axis1.position(pct) * 6)), volt);     // controlls any motors on the right side of the drivetrain
+    L.spin(forward, tovolt(Controller1.Axis3.position(percent) + (Controller1.Axis1.position(percent) * 6)), volt); // controlls any motors on the left side of the drivetrain
     wait(10, msec);
     // Tank Control
     // R6.spin(forward, Controller1.Axis2.value(), percent);
@@ -246,19 +246,26 @@ sweep(90.0, false);    // Sweep turn right 90° (left side moves)
 */
 void auton() // A function named "auton", in this case, any code in the brackets will run once (unless in a loop) when its autonomous
 {
+  RollerIntake.setVelocity(600, rpm);
+  Out.setVelocity(200, rpm);
+  Take.setVelocity(200, rpm);
+
+  RollerIntake.spin(forward);
   drive(48.0);
-  turn(90.0);
-  drive(24.0);
-  turn(0.0);
-  drive(24.0);
-  turn(180.0);
-  drive(24.0);
-  turn(270.0);
-  drive(48.0);
-  turn(90.0);
-  drive(24.0);
-  turn(180.0);
-  drive(48.0);
+  wait(1.0, sec);
+  turn(15);
+  drive(20.0);
+  wait(0.5, sec);
+  drive(-20);
+  turn(90);
+  drive(40);
+  turn(110);
+  // put in loader thingy
+  drive(10);
+  wait(1, sec);
+  RollerIntake.stop();
+  drive(-55);
+  outake.spin(reverse);
 
   /*
  {
@@ -287,7 +294,7 @@ int main()
 {
 
   vexcodeInit();
-  // startOdom(Xaxis, Yaxis, inertial19);
+  startOdom(Xaxis, Yaxis, inertial19);
   pre_auton();
   Competition.autonomous(auton);          // what function to run when autonomous begins, in this case it would run the function "auton"
   Competition.drivercontrol(usercontrol); // what function to run when driver control begins, in this case it would run the function "usercontrol"
@@ -295,7 +302,7 @@ int main()
   while (true)
   {
     // Get raw encoder values
-    /*double xEnc = Xaxis.position(turns);
+    double xEnc = Xaxis.position(turns);
     double yEnc = Yaxis.position(turns);
     double heading = inertial19.rotation();
 
@@ -322,7 +329,7 @@ int main()
     Controller1.Screen.setCursor(2, 1);
     Controller1.Screen.print("Y: %.2f", currentPose.y);
     Controller1.Screen.setCursor(3, 1);
-    Controller1.Screen.print("t: %.2f", currentPose.theta);*/
+    Controller1.Screen.print("t: %.2f", currentPose.theta);
 
     wait(100, msec); // Delay to avoid screen spam
 

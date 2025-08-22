@@ -174,14 +174,12 @@ void arc(double radiusInches, double angleDeg)
                        (radiusInches + (wheelTrack / 2.0));
 
     // Determine direction of turn
-    int turnDir = (angleDeg >= 0) ? 1 : -1;
-
+    int turnDir = (radiusInches >= 0) ? 1 : -1;
+    int turnAng = (angleDeg >= 0) ? 1 : -1;
     while (true)
     {
         Pose pose = getPose();
-        double dx = pose.x - startPose.x;
-        double dy = pose.y - startPose.y;
-        double traveled = sqrt(dx * dx + dy * dy);
+        double traveled = pose.ySensor - startPose.ySensor;
         double remaining = targetDistance - traveled;
 
         // Exit condition
@@ -212,6 +210,16 @@ void arc(double radiusInches, double angleDeg)
             rightOut *= turnRatio;
         }
 
+        if (turnAng > 0)
+        { // Turning right
+            leftOut *= 1;
+            rightOut *= 1;
+        }
+        else
+        { // Turning left
+            leftOut *= -1;
+            rightOut *= -1;
+        }
         setDrive(leftOut, rightOut);
 
         elapsedTime += 10;

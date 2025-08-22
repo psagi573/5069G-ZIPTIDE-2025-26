@@ -7,7 +7,9 @@ struct Pose
 {
     double x;
     double y;
-    double theta; // degrees [0,360)
+    double theta;   // degrees [0,360)
+    double ySensor; // Y-axis tracker position in inches
+    double xSensor; // X-axis tracker position in inches
 };
 
 // Initialize and start odometry tracking
