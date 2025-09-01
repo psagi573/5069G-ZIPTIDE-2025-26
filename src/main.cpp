@@ -229,11 +229,10 @@ void pre_auton(void)
     wait(100, msec);
   }*/
 }
-
+#include "PID.h"
 #include "odom.h"
 #include "motion.h"
 #include "autonSelector.h"
-#include "PID.h"
 #include "profile.h"
 
 /*startOdom(xRot, yRot, imu);

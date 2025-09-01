@@ -35,10 +35,10 @@ double PID::compute(double target, double current, bool turn)
     if (turn)
     {
         // Wrap angle error to [-180, 180]
-        if (error > 180)
-            error -= 360;
         if (error < -180)
             error += 360;
+        if (error > 180)
+            error -= 360;
     }
 
     if (fabs(error) < 10)

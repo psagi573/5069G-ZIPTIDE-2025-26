@@ -167,6 +167,7 @@ void arc(double radiusInches, double angleDeg)
     double arcLength = 2.0 * M_PI * radiusInches * (angleDeg / 360.0);
 
     Pose startPose = getPose();
+
     double targetDistance = fabs(arcLength);
 
     //  wheel ratio for arc
@@ -221,6 +222,64 @@ void arc(double radiusInches, double angleDeg)
             rightOut *= -1;
         }
         setDrive(leftOut, rightOut);
+
+        elapsedTime += 10;
+        wait(10, msec);
+    }
+
+    stop();
+}
+
+void Sweep(double targetAngleDeg, bool left, bool forward)
+{
+    fastTurnPID.reset();
+    double elapsedTime = 0;
+    const double timeout = 3000;
+
+    while (true)
+    {
+        Pose pose = getPose();
+        double heading = pose.theta;
+
+        double turnOutput = fastTurnPID.compute(targetAngleDeg, heading, true);
+
+        double remaining = targetAngleDeg - heading;
+
+        if (fabs(remaining) < 1.0 || elapsedTime >= timeout)
+            break;
+
+        if (turnOutput > 1)
+            turnOutput = 1;
+        if (turnOutput < -1)
+            turnOutput = -1;
+
+        double Volts = turnOutput * 11.0;
+        Volts = minVolt(Volts);
+
+        if (forward = true)
+        {
+            Volts = Volts * 1.0;
+        }
+        else
+        {
+            Volts = Volts * -1.0;
+        }
+
+        double leftvolt;
+        double rightvolt;
+
+        if (left = true)
+        {
+            leftvolt = Volts;
+            rightvolt = 0;
+        }
+        else
+        {
+            leftvolt = 0;
+            rightvolt = Volts;
+        }
+
+        setDrive(leftvolt, rightvolt);
 
         elapsedTime += 10;
         wait(10, msec);
