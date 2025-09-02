@@ -1,158 +1,301 @@
+// BV2_Full.cpp
+// Full-featured BV2 = Boomerang + Velocity PIDs + 2D Motion Profiling + Action Triggers
 #include "vex.h"
-#include <cmath>
-#include <algorithm>
 #include <vector>
+#include <cmath>
+#include <atomic>
+#include <functional>
 
-// ---------- CONFIG ----------
-#define WHEEL_DIAMETER 2.75
-#define WHEEL_TRACK 10.5  // distance between left/right tracking wheels in inches
-#define TICKS_PER_REV 360.0
-#define PI 3.14159265358979323846
+using namespace vex;
 
-// ---------- CLAMP ----------
-template <typename T>
-T clamp(T value, T minVal, T maxVal) {
-    if (value < minVal) return minVal;
-    if (value > maxVal) return maxVal;
-    return value;
-}
+// ========================= CONFIG =========================
+static const double WHEEL_BASE_IN = 12.0;     
+static const double MAX_VOLT = 11.0;
 
-// ---------- BASIC PID ----------
-class PID {
+static const int CONTROL_DT_MS = 10;          
+
+// BV2 tuning
+static const double VMAX = 24.0;       // in/s
+static const double AMAX = 48.0;       // in/s^2
+static const double OMEGA_MAX = M_PI;  // rad/s
+static const double ALPHA_MAX = 2*M_PI; // rad/s^2
+
+// Boomerang gains
+static const double BOOMERANG_KP_FWD = 0.9;
+static const double BOOMERANG_KP_ANG = 2.0;
+static const double LOOKAHEAD_IN = 8.0;
+
+// Velocity PID gains
+static const double KV_P = 0.65, KV_I = 0.002, KV_D = 0.08;
+static const double KW_P = 3.2, KW_I = 0.005, KW_D = 0.12;
+
+// Feedforward coefficients
+static const double FF_V = 0.35;
+static const double FF_W = 0.03;
+
+// Stopping tolerances
+static const double POS_TOLERANCE_IN = 0.5;
+static const double ANG_TOLERANCE_DEG = 2.0;
+
+// ========================= UTILITIES =========================
+static inline double clampD(double v, double lo, double hi){ return (v<lo?lo:(v>hi?hi:v)); }
+static inline double degToRad(double d){ return d*M_PI/180.0; }
+static inline double radToDeg(double r){ return r*180.0/M_PI; }
+static inline double wrapDeg(double a){ while(a<=-180)a+=360; while(a>180)a-=360; return a; }
+static inline double wrapRad(double r){ while(r<=-M_PI) r+=2*M_PI; while(r>M_PI) r-=2*M_PI; return r; }
+
+// ========================= PID =========================
+class PID{
 public:
-    double kP, kI, kD;
-    double integral, prevError;
-    PID(double p=0, double i=0, double d=0) {
-        kP = p; kI = i; kD = d;
-        integral = 0; prevError = 0;
+    PID(double p=0,double i=0,double d=0){ setGains(p,i,d); reset(); }
+    void setGains(double p,double i,double d){ kP=p; kI=i; kD=d; }
+    void reset(){ integral=0.0; prevError=0.0; first=true; }
+    double compute(double setpoint,double measurement,double dt){
+        double err=setpoint-measurement;
+        integral += err*dt;
+        double deriv=0.0;
+        if(!first) deriv = (err-prevError)/dt;
+        prevError=err; first=false;
+        return kP*err + kI*integral + kD*deriv;
     }
-    void reset() { integral = 0; prevError = 0; }
-    double compute(double target, double current, bool turn=false) {
-        double error = target - current;
-        if (turn) {
-            if (error > 180) error -= 360;
-            if (error < -180) error += 360;
+private:
+    double kP=0,kI=0,kD=0;
+    double integral=0,prevError=0;
+    bool first=true;
+};
+
+// ========================= POSE & PATH =========================
+struct Pose2D{ double x,y,theta; }; 
+
+struct Waypoint{
+    double x,y,heading;
+    std::function<void()> preAction;
+    std::function<void()> postAction;
+    std::function<void(const Pose2D&)> midAction;
+
+    Waypoint(double _x=0,double _y=0,double _h=0) 
+        : x(_x), y(_y), heading(_h),
+          preAction(nullptr), postAction(nullptr), midAction(nullptr) {}
+};
+
+using Path = std::vector<Waypoint>;
+
+// ========================= MOTION PROFILER =========================
+struct MotionProfile1D{
+    double v=0.0;
+    double vmax,amax;
+    MotionProfile1D(double vmax_,double amax_):vmax(vmax_),amax(amax_){}
+    double stepToTarget(double targetRem,double dt){
+        double sign=(targetRem>=0?1.0:-1.0);
+        double dist=fabs(targetRem);
+        double v_allowed=sqrt(2*amax*dist);
+        double v_goal=std::min(vmax,v_allowed);
+
+        if(fabs(v)<v_goal){ v+=sign*amax*dt; if(fabs(v)>v_goal) v=sign*v_goal; }
+        else{ v-=sign*amax*dt; if(sign*v<0)v=0; }
+        if(fabs(v)>vmax) v=sign*vmax;
+        return v;
+    }
+};
+
+// ========================= BOOMERANG =========================
+struct Boomerang{
+    double lookahead;
+    Boomerang(double la):lookahead(la){}
+    std::pair<int,std::pair<double,double>> getLookaheadPoint(const Path &path,const Pose2D &pose){
+        if(path.empty()) return {-1,{pose.x,pose.y}};
+        for(size_t i=0;i+1<path.size();++i){
+            double x1=path[i].x,y1=path[i].y;
+            double x2=path[i+1].x,y2=path[i+1].y;
+            double vx=x2-x1,vy=y2-y1;
+            double wx=pose.x-x1,wy=pose.y-y1;
+            double segLen=sqrt(vx*vx+vy*vy);
+            if(segLen<1e-6) continue;
+            double proj=clampD((wx*vx+wy*vy)/(segLen*segLen),0.0,1.0);
+            double px=x1+proj*vx,py=y1+proj*vy;
+
+            double px0=pose.x,py0=pose.y;
+            double A=vx*vx+vy*vy;
+            double B=2*(vx*(x1-px0)+vy*(y1-py0));
+            double C=(x1-px0)*(x1-px0)+(y1-py0)*(y1-py0)-lookahead*lookahead;
+            double disc=B*B-4*A*C;
+            if(disc<0) continue;
+            double sqrtD=sqrt(disc);
+            double s1=(-B+sqrtD)/(2*A), s2=(-B-sqrtD)/(2*A);
+            double s=-1;
+            if(s1>=0 && s1<=1) s=s1;
+            else if(s2>=0 && s2<=1) s=s2;
+            if(s>=0){ return {(int)i,{x1+s*vx,y1+s*vy}}; }
         }
-        if (fabs(error) < 10) { integral += error; }
-        double derivative = error - prevError;
-        prevError = error;
-        return (error * kP) + (integral * kI) + (derivative * kD);
+        const Waypoint &last=path.back();
+        return {(int)path.size()-1,{last.x,last.y}};
     }
 };
 
-// ---------- GLOBAL PIDs ----------
-PID distPID(0.15, 0.0, 0.9);        // position PID
-PID headingPID(0.04, 0.0, 0.33);    // boomerang angle correction
-PID velPID(0.3, 0.0, 0.05);         // velocity PID for BV2
+// ========================= BV2 CONTROLLER =========================
+class BV2Controller{
+public:
+    BV2Controller()
+    : linearPID(KV_P,KV_I,KV_D), angularPID(KW_P,KW_I,KW_D),
+      linearProfiler(VMAX,AMAX), angularProfiler(OMEGA_MAX,ALPHA_MAX),
+      boom(LOOKAHEAD_IN), running(false), pathIndex(0) {}
 
-// ---------- POSE ----------
-struct Pose {
-    double x, y, theta; // inches, inches, degrees
+    void startPath(const Path &p,bool resetPoseToFirst=false){
+        if(p.empty()) return;
+        path=p;
+        pathIndex=0;
+        wpPreTriggered.assign(path.size(),false);
+        wpPostTriggered.assign(path.size(),false);
+
+        if(resetPoseToFirst){ /* implement odom reset if needed */ }
+
+        linearPID.reset(); angularPID.reset();
+        linearProfiler.v=0; angularProfiler.v=0;
+        running=true;
+        controllerThread=std::thread(&BV2Controller::controlLoop,this);
+    }
+
+    void stop(){
+        running=false;
+        if(controllerThread.joinable()) controllerThread.join();
+        stopDrive();
+    }
+
+    bool isRunning() const { return running; }
+
+private:
+    PID linearPID, angularPID;
+    MotionProfile1D linearProfiler, angularProfiler;
+    Boomerang boom;
+
+    Path path;
+    std::atomic<bool> running;
+    std::thread controllerThread;
+    std::atomic<int> pathIndex;
+
+    std::vector<bool> wpPreTriggered, wpPostTriggered;
+
+    void stopDrive(){ setDrive(0.0,0.0); wait(20,msec); }
+
+    void controlLoop(){
+        const double dt = CONTROL_DT_MS/1000.0;
+        while(running){
+            Pose2D pose = fetchPose();
+            if(path.empty()){ running=false; break; }
+            Waypoint &wp = path[pathIndex];
+
+            // PRE-ACTION
+            if(wp.preAction && !wpPreTriggered[pathIndex]){
+                wp.preAction(); wpPreTriggered[pathIndex]=true;
+            }
+            // MID-ACTION
+            if(wp.midAction) wp.midAction(pose);
+
+            // Lookahead and Boomerang calculations
+            auto look = boom.getLookaheadPoint(path,pose);
+            double dx = look.second.first - pose.x;
+            double dy = look.second.second - pose.y;
+            double distToLA = sqrt(dx*dx+dy*dy);
+
+            double thetaRad = degToRad(pose.theta);
+            double robotFwdX = cos(thetaRad);
+            double robotFwdY = sin(thetaRad);
+
+            double forwardComp = dx*robotFwdX + dy*robotFwdY;
+            double lateralComp = -dx*robotFwdY + dy*robotFwdX;
+
+            double v_geom = BOOMERANG_KP_FWD*forwardComp;
+            double omega_geom = clampD(BOOMERANG_KP_ANG*(lateralComp/LOOKAHEAD_IN),-1.0,1.0)*degToRad(90.0);
+
+            // Profiling
+            Waypoint lastWP=path.back();
+            double dxEnd=lastWP.x-pose.x,dyEnd=lastWP.y-pose.y;
+            double distToEnd = sqrt(dxEnd*dxEnd+dyEnd*dyEnd);
+
+            double v_set = linearProfiler.stepToTarget((forwardComp>=0?distToEnd:-distToEnd), dt);
+            if(v_geom<0) v_set=-fabs(v_set);
+
+            double curvature=fabs(omega_geom)/degToRad(90.0);
+            double v_curved_max=VMAX*clampD(1.0-0.6*curvature,0.2,1.0);
+            if(fabs(v_set)>v_curved_max) v_set=(v_set>=0?v_curved_max:-v_curved_max);
+
+            double omega_set=angularProfiler.stepToTarget(omega_geom, dt);
+
+            // Heading correction near endpoint
+            double headingErrorDeg=0.0;
+            if(distToEnd<12.0){
+                double desiredHeading=lastWP.heading;
+                if(fabs(desiredHeading)<1e-6) desiredHeading=radToDeg(atan2(dyEnd,dxEnd));
+                headingErrorDeg=wrapDeg(desiredHeading-pose.theta);
+                omega_set += degToRad(0.02*headingErrorDeg);
+            }
+
+            // Velocity measurement
+            double v_meas = measureLinearVelocity();
+            double omega_meas = measureAngularVelocity();
+
+            // PID + feedforward
+            double v_out_volts = FF_V*v_set + linearPID.compute(v_set,v_meas,dt);
+            double w_out_volts = FF_W*omega_set*(WHEEL_BASE_IN/2.0) + angularPID.compute(omega_set,omega_meas,dt);
+
+            // Convert to left/right voltages
+            double leftVolts = v_out_volts - (w_out_volts*(WHEEL_BASE_IN/2.0)/12.0);
+            double rightVolts = v_out_volts + (w_out_volts*(WHEEL_BASE_IN/2.0)/12.0);
+
+            leftVolts = clampD(leftVolts,-MAX_VOLT,MAX_VOLT);
+            rightVolts = clampD(rightVolts,-MAX_VOLT,MAX_VOLT);
+
+            setDrive(leftVolts,rightVolts);
+
+            // POST-ACTION and waypoint advance
+            if(distToEnd<POS_TOLERANCE_IN && wp.postAction && !wpPostTriggered[pathIndex]){
+                wp.postAction(); wpPostTriggered[pathIndex]=true;
+                if(pathIndex+1<path.size()) pathIndex++;
+            }
+
+            // Check finish condition
+            if(distToEnd<POS_TOLERANCE_IN && fabs(radToDeg(omega_meas))<5.0 && fabs(headingErrorDeg)<ANG_TOLERANCE_DEG){
+                setDrive(0.0,0.0); wait(50,msec); running=false; break;
+            }
+
+            wait(CONTROL_DT_MS,msec);
+        }
+        setDrive(0.0,0.0);
+    }
+
+    // ------------------ HOOKS ------------------
+    Pose2D fetchPose(){
+        Pose p = getPose(); // map to your existing odom
+        return {p.x,p.y,p.theta};
+    }
+    double measureLinearVelocity(){
+        static double lastY=0.0,lastTime=Brain.timer(msec);
+        double now=Brain.timer(msec);
+        double dt=(now-lastTime)/1000.0;
+        double y=getPose().ySensor; 
+        double v=(dt>1e-6?(y-lastY)/dt:0.0);
+        lastY=y; lastTime=now;
+        return v;
+    }
+    double measureAngularVelocity(){
+        static double lastTheta=0.0,lastTime=Brain.timer(msec);
+        double now=Brain.timer(msec);
+        double dt=(now-lastTime)/1000.0;
+        double theta=getPose().theta;
+        double omega=(dt>1e-6?degToRad(wrapDeg(theta-lastTheta))/dt:0.0);
+        lastTheta=theta; lastTime=now;
+        return omega;
+    }
 };
 
-Pose robotPose = {0, 0, 0};
+// ----------------- SINGLE GLOBAL BV2 INSTANCE -----------------
+static BV2Controller BV2;
 
-// ---------- ODOMETRY UPDATE ----------
-void updateOdometry(double leftDelta, double rightDelta) {
-    double leftInches = (leftDelta / TICKS_PER_REV) * (PI * WHEEL_DIAMETER);
-    double rightInches = (rightDelta / TICKS_PER_REV) * (PI * WHEEL_DIAMETER);
-    double centerArc = (leftInches + rightInches) / 2.0;
-    double headingChange = (rightInches - leftInches) / WHEEL_TRACK;
-
-    robotPose.theta += headingChange * (180.0 / PI);
-    if (robotPose.theta > 180) robotPose.theta -= 360;
-    if (robotPose.theta < -180) robotPose.theta += 360;
-
-    robotPose.x += centerArc * cos(robotPose.theta * PI / 180.0);
-    robotPose.y += centerArc * sin(robotPose.theta * PI / 180.0);
-}
-
-// ---------- GET POSE ----------
-Pose getPose() {
-    return robotPose;
-}
-
-// ---------- DRIVE CONTROL ----------
-void setDrive(double left, double right) {
-    left = clamp(left, -11.0, 11.0);
-    right = clamp(right, -11.0, 11.0);
-    L1.spin(fwd, left, volt);
-    L2.spin(fwd, left, volt);
-    L3.spin(fwd, left, volt);
-    R6.spin(fwd, right, volt);
-    R7.spin(fwd, right, volt);
-    R8.spin(fwd, right, volt);
-}
-
-// ---------- 2D MOTION PROFILE ----------
-double trapezoidalProfile(double distance, double maxVel, double accel, double traveled) {
-    double accelDist = (maxVel * maxVel) / (2 * accel);
-    double decelDist = accelDist;
-    double cruiseDist = distance - accelDist - decelDist;
-
-    if (traveled < accelDist) { // accel phase
-        return sqrt(2 * accel * traveled);
-    } else if (traveled < accelDist + cruiseDist) { // cruise phase
-        return maxVel;
-    } else { // decel phase
-        double remaining = distance - traveled;
-        return sqrt(2 * accel * remaining);
-    }
-}
-
-// ---------- BV2 CONTROLLER ----------
-void BV2Follow(double targetX, double targetY, double maxVel=40, double accel=20) {
-    distPID.reset();
-    velPID.reset();
-    headingPID.reset();
-
-    Pose start = getPose();
-    double totalDist = sqrt(pow(targetX - start.x, 2) + pow(targetY - start.y, 2));
-
-    while (true) {
-        Pose pose = getPose();
-        double dx = targetX - pose.x;
-        double dy = targetY - pose.y;
-        double distToTarget = sqrt(dx*dx + dy*dy);
-
-        if (distToTarget < 0.5) break;
-
-        double targetHeading = atan2(dy, dx) * (180.0 / PI);
-        double headingError = headingPID.compute(targetHeading, pose.theta, true);
-
-        double targetVel = trapezoidalProfile(totalDist, maxVel, accel, totalDist - distToTarget);
-        double currentVel = 0; // Replace with real velocity sensor if available
-        double velCorrection = velPID.compute(targetVel, currentVel);
-
-        double basePower = distPID.compute(totalDist, totalDist - distToTarget);
-        basePower += velCorrection;
-        basePower = clamp(basePower, -1.0, 1.0) * 11.0;
-
-        double leftPower = basePower + headingError;
-        double rightPower = basePower - headingError;
-
-        setDrive(leftPower, rightPower);
-        wait(10, msec);
-    }
-    setDrive(0,0);
-}
-
-// ---------- PD CONTROLLER ----------
-void PDDrive(double distInches) {
-    PID pd(0.2, 0, 1.0);
-    pd.reset();
-    Pose start = getPose();
-    double traveled = 0;
-    while (true) {
-        Pose pose = getPose();
-        double dx = pose.x - start.x;
-        double dy = pose.y - start.y;
-        traveled = sqrt(dx*dx + dy*dy);
-        double error = distInches - traveled;
-        if (fabs(error) < 0.5) break;
-        double output = pd.compute(distInches, traveled);
-        setDrive(output*11.0, output*11.0);
-        wait(10, msec);
-    }
-    setDrive(0,0);
-}
+// ================== EXAMPLE USAGE ==================
+// Path p; 
+// p.push_back(Waypoint(0,0,0));
+// p.push_back(Waypoint(48,0,0));
+// p[1].preAction=[](){runIntakeForward();};
+// BV2.startPath(p,false);
+// while(BV2.isRunning()){wait(10,msec);}
+// BV2.stop();

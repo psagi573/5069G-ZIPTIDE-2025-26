@@ -8,6 +8,7 @@ public:
     double integral;
     double prevError;
     double error;
+    double prevDerivative;
     PID(double p, double i, double d);
     void reset();
     double compute(double target, double current, bool turn = false);

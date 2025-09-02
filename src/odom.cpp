@@ -18,7 +18,7 @@ rotation *xRot;
 rotation *yRot;
 inertial *imuSensor;
 
-// Robot geometry
+// Robot senser offsets
 const double xOffset = -8;   // inches from center to X (lateral) tracker 0 inches
 const double yOffset = -0.3; // inches from center to Y (longitudinal) tracker 1.9 inches
 
@@ -31,6 +31,7 @@ double prevX = 0;
 double prevY = 0;
 double prevThetaRad = 0;
 
+// Odometer update task
 int odomTask()
 {
     while (odomRunning)
@@ -97,7 +98,7 @@ int odomTask()
         prevY = currYInches;
         prevThetaRad = thetaRad;
 
-        wait(10, msec); // Update at 100Hz or adjust as needed
+        wait(10, msec); // Update at 100Hz
     }
 
     return 0;
