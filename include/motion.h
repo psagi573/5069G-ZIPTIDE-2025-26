@@ -1,3 +1,4 @@
+#pragma once
 #include "odom.h"
 void drive(double distInches);
 void turn(double targetHeading);
