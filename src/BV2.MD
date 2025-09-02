@@ -1,3 +1,219 @@
+// BV2_New.cpp
+// Point-based BV2 system with STRAIGHT, TURN, SWEEP, CURVE (Hermite)
+// Uses: odometry, boomerang lookahead, 1D/2D motion profiling, velocity PIDs, Hermite splines
+
+#include "vex.h"
+#include <vector>
+#include <cmath>
+#include <thread>
+#include <atomic>
+
+using namespace vex;
+
+// ========================= CONFIG =========================
+static const double WHEEL_BASE_IN = 12.0;
+static const double MAX_VOLT = 11.0;
+static const int CONTROL_DT_MS = 10;
+
+// BV2 tuning
+static const double VMAX = 24.0;    // in/sec
+static const double AMAX = 48.0;    // in/sec^2
+static const double OMEGA_MAX = 180.0 * M_PI/180.0;
+static const double ALPHA_MAX = 360.0 * M_PI/180.0;
+static const double LOOKAHEAD_IN = 8.0;
+
+// PID gains
+static const double KV_P = 0.65, KV_I = 0.002, KV_D = 0.08;
+static const double KW_P = 3.2, KW_I = 0.005, KW_D = 0.12;
+static const double BOOMERANG_KP_FWD = 0.9;
+static const double BOOMERANG_KP_ANG = 2.0;
+
+// Feedforward coefficients
+static const double FF_V = 0.35;
+static const double FF_W = 0.03;
+
+// Tolerances
+static const double POS_TOL = 0.5;
+static const double ANG_TOL = 2.0;
+
+// ==================== UTILITIES =========================
+static inline double clampD(double v, double lo, double hi) { return (v<lo)?lo:(v>hi?hi:v); }
+static inline double degToRad(double d){ return d*M_PI/180.0; }
+static inline double radToDeg(double r){ return r*180.0/M_PI; }
+static inline double wrapDeg(double a){ while(a<=-180)a+=360; while(a>180)a-=360; return a; }
+static inline double wrapRad(double r){ while(r<=-M_PI)r+=2*M_PI; while(r>M_PI)r-=2*M_PI; return r; }
+
+// ==================== STRUCTS ===========================
+struct Pose2D { double x=0,y=0,theta=0; };
+struct Waypoint { double x=0,y=0,theta=0; Waypoint(double X, double Y, double T):x(X),y(Y),theta(T){} };
+using Path = std::vector<Waypoint>;
+
+// Movement types
+enum class MoveType { STRAIGHT, TURN, SWEEP, CURVE };
+
+// ==================== SIMPLE PID ========================
+class PID {
+public:
+  PID(double p=0,double i=0,double d=0){setGains(p,i,d); reset();}
+  void setGains(double p,double i,double d){kP=p;kI=i;kD=d;}
+  void reset(){integral=0;prevError=0;first=true;}
+  double compute(double setpoint,double measure,double dt){
+    double err = setpoint-measure;
+    integral += err*dt;
+    double deriv = (!first)?(err-prevError)/dt:0.0;
+    prevError=err; first=false;
+    return kP*err + kI*integral + kD*deriv;
+  }
+private:
+  double kP=0,kI=0,kD=0;
+  double integral=0, prevError=0;
+  bool first=true;
+};
+
+// ==================== MOTION PROFILER ===================
+struct MotionProfile1D {
+  double v=0,vmax,amax;
+  MotionProfile1D(double vmax_, double amax_):vmax(vmax_),amax(amax_){}
+  double stepToTarget(double targetRemaining,double dt){
+    double sign = (targetRemaining>=0)?1.0:-1.0;
+    double dist = fabs(targetRemaining);
+    double v_allowed = sqrt(2*amax*dist);
+    double v_goal = std::min(vmax,v_allowed);
+    if(fabs(v)<v_goal){ v+=sign*amax*dt; if(fabs(v)>v_goal) v=sign*v_goal; }
+    else { v-=sign*amax*dt; if(sign*v<0)v=0; }
+    if(fabs(v)>vmax) v=sign*vmax;
+    return v;
+  }
+};
+
+// ==================== BOOMERANG LOOKAHEAD ===============
+struct Boomerang {
+  double lookahead;
+  Boomerang(double la):lookahead(la){}
+  std::pair<int,std::pair<double,double>> getLookaheadPoint(const Path &path, const Pose2D &pose){
+    if(path.empty()) return {-1,{pose.x,pose.y}};
+    for(size_t i=0;i+1<path.size();++i){
+      double x1=path[i].x, y1=path[i].y, x2=path[i+1].x, y2=path[i+1].y;
+      double vx=x2-x1, vy=y2-y1, wx=pose.x-x1, wy=pose.y-y1;
+      double segLen = sqrt(vx*vx+vy*vy);
+      if(segLen<1e-6) continue;
+      double proj = clampD((wx*vx+wy*vy)/(segLen*segLen),0.0,1.0);
+      double px=x1+proj*vx, py=y1+proj*vy;
+      double px0=pose.x, py0=pose.y;
+      double A=vx*vx+vy*vy, B=2*(vx*(x1-px0)+vy*(y1-py0)), C=(x1-px0)*(x1-px0)+(y1-py0)*(y1-py0)-lookahead*lookahead;
+      double disc = B*B-4*A*C; if(disc<0) continue;
+      double sqrtD=sqrt(disc), s1=(-B+sqrtD)/(2*A), s2=(-B-sqrtD)/(2*A);
+      double s=-1; if(s1>=0 && s1<=1) s=s1; else if(s2>=0 && s2<=1) s=s2;
+      if(s>=0){ double lx=x1+s*vx, ly=y1+s*vy; return {(int)i,{lx,ly}}; }
+    }
+    const Waypoint &last = path.back();
+    return {(int)path.size()-1,{last.x,last.y}};
+  }
+};
+
+// ==================== HERMITE SPLINE GENERATOR ===========
+struct HermiteSpline {
+  // Simple cubic Hermite interpolation between two points with optional tangent vectors
+  static Waypoint interpolate(const Waypoint &p0,const Waypoint &p1,double t){
+    double h00 = 2*t*t*t - 3*t*t +1;
+    double h10 = t*t*t - 2*t*t + t;
+    double h01 = -2*t*t*t +3*t*t;
+    double h11 = t*t*t - t*t;
+    double tx0=cos(degToRad(p0.theta)), ty0=sin(degToRad(p0.theta));
+    double tx1=cos(degToRad(p1.theta)), ty1=sin(degToRad(p1.theta));
+    double x = h00*p0.x + h10*tx0 + h01*p1.x + h11*tx1;
+    double y = h00*p0.y + h10*ty0 + h01*p1.y + h11*ty1;
+    double theta = h00*p0.theta + h01*p1.theta; // approximate
+    return {x,y,theta};
+  }
+};
+
+// ==================== BV2 CONTROLLER ====================
+class BV2Controller{
+public:
+  BV2Controller():linearPID(KV_P,KV_I,KV_D),angularPID(KW_P,KW_I,KW_D),
+  linearProfiler(VMAX,AMAX),angularProfiler(OMEGA_MAX,ALPHA_MAX),boom(LOOKAHEAD_IN),
+  running(false){}
+  
+  void MoveTo(const Waypoint &target, MoveType type, const Path &curvePath={}){
+    path.clear();
+    if(type==MoveType::CURVE) path = curvePath;
+    else path.push_back(target);
+    moveType = type;
+    running=true;
+    linearPID.reset(); angularPID.reset();
+    linearProfiler.v=0; angularProfiler.v=0;
+    controllerThread = std::thread(&BV2Controller::controlLoop,this,target);
+    if(controllerThread.joinable()) controllerThread.join();
+  }
+  
+private:
+  PID linearPID, angularPID;
+  MotionProfile1D linearProfiler, angularProfiler;
+  Boomerang boom;
+  Path path;
+  MoveType moveType;
+  std::atomic<bool> running;
+  std::thread controllerThread;
+  
+  Pose2D fetchPose(){ Pose p=getPose(); return {p.x,p.y,p.theta}; }
+  double measureLinearVelocity(){ return 0; } // implement from odom
+  double measureAngularVelocity(){ return 0; } // implement from odom
+  void setDrive(double l,double r){ /* map to motors */ }
+  
+  void controlLoop(Waypoint target){
+    const double dt=CONTROL_DT_MS/1000.0;
+    while(running){
+      Pose2D pose = fetchPose();
+      double dx=target.x-pose.x, dy=target.y-pose.y;
+      double dist = sqrt(dx*dx+dy*dy);
+      double headingError = wrapDeg(target.theta-pose.theta);
+      
+      if(moveType==MoveType::TURN){ dist=0; dx=dy=0; }
+      
+      // Boomerang forward/lateral
+      double thetaRad=degToRad(pose.theta);
+      double fwdX=cos(thetaRad), fwdY=sin(thetaRad);
+      double forwardComp = dx*fwdX + dy*fwdY;
+      
+      double v_cmd=linearProfiler.stepToTarget(forwardComp,dt);
+      double w_cmd=angularProfiler.stepToTarget(headingError,dt);
+      
+      double v_fb = linearPID.compute(v_cmd, measureLinearVelocity(), dt);
+      double w_fb = angularPID.compute(w_cmd, measureAngularVelocity(), dt);
+      
+      double left = v_fb - w_fb*WHEEL_BASE_IN/2.0;
+      double right = v_fb + w_fb*WHEEL_BASE_IN/2.0;
+      left = clampD(left,-VMAX,VMAX);
+      right = clampD(right,-VMAX,VMAX);
+      
+      setDrive(left,right);
+      
+      if(dist<POS_TOL && fabs(headingError)<ANG_TOL){ running=false; break; }
+      wait(CONTROL_DT_MS, msec);
+    }
+    setDrive(0,0);
+  }
+};
+
+BV2Controller BV2;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // BV2_Full.cpp
 // Full-featured BV2 = Boomerang + Velocity PIDs + 2D Motion Profiling + Action Triggers
 #include "vex.h"
@@ -113,6 +329,9 @@ struct Boomerang{
             if(segLen<1e-6) continue;
             double proj=clampD((wx*vx+wy*vy)/(segLen*segLen),0.0,1.0);
             double px=x1+proj*vx,py=y1+proj*vy;
+
+
+
 
             double px0=pose.x,py0=pose.y;
             double A=vx*vx+vy*vy;
