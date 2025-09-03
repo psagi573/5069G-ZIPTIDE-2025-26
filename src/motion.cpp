@@ -4,19 +4,9 @@
 #include "robot-config.h"
 #include <cmath>
 #include <algorithm>
+#include "utils.h"
 
 using namespace vex;
-
-// Function to clamp a value between minVal and maxVal
-template <typename T>
-T clamp(T value, T minVal, T maxVal)
-{
-    if (value < minVal)
-        return minVal;
-    if (value > maxVal)
-        return maxVal;
-    return value;
-}
 
 const double wheelTrack = 14.5; // in inches (left-right distance)
 

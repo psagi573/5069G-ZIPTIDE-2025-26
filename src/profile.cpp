@@ -3,19 +3,7 @@
 #include <cmath>
 #include <cassert>
 #include <algorithm>
-
-// ---------------------- Utilities ----------------------
-static inline double sqr(double a) { return a * a; }
-static inline double degToRad(double d) { return d * M_PI / 180.0; }
-static inline double radToDeg(double r) { return r * 180.0 / M_PI; }
-static inline double wrapDegNorm(double a)
-{
-    while (a <= -180.0)
-        a += 360.0;
-    while (a > 180.0)
-        a -= 360.0;
-    return a;
-}
+#include "utils.h"
 
 // ------------------- MotionProfiler2D -------------------
 MotionProfiler2D::MotionProfiler2D()
@@ -81,13 +69,13 @@ void MotionProfiler2D::buildPolyline(const std::vector<MP_Point> &pts, bool head
             {
                 double dx = polyline[i + 1].x - polyline[i].x;
                 double dy = polyline[i + 1].y - polyline[i].y;
-                polyline[i].theta = radToDeg(atan2(dy, dx));
+                polyline[i].theta = rad2deg(atan2(dy, dx));
             }
             else if (i > 0)
             {
                 double dx = polyline[i].x - polyline[i - 1].x;
                 double dy = polyline[i].y - polyline[i - 1].y;
-                polyline[i].theta = radToDeg(atan2(dy, dx));
+                polyline[i].theta = rad2deg(atan2(dy, dx));
             }
         }
     }
