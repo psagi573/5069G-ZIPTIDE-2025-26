@@ -1,4 +1,4 @@
-// motion_profile.cpp
+/*// motion_profile.cpp
 #include "profile.h"
 #include <cmath>
 #include <cassert>
@@ -517,3 +517,4 @@ bool MotionProfiler2D::stepRealtime(double dtSeconds, TrajSample &outSample)
     outSample = trajectory[realtime_index++];
     return true;
 }
+*/

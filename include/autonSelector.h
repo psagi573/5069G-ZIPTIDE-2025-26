@@ -1,16 +1,15 @@
 #pragma once
 #include "vex.h"
+#include <string>
+#include <vector>
 
-using namespace vex;
-
-// Selected auton index and routine string
-extern int autonIndex;
+// Globals
 extern std::string autonRoutine;
+extern int autonIndex;
+extern std::vector<std::string> autonList;
 
-// Starts the auton selector UI on Brain and Controller
+// Selector
 void autonSelector();
 
-// Internal helpers (optional to expose)
-void updateBrainScreen();
-void updateControllerScreen();
-void showFinalScreen();
+// Run the chosen auton
+void runAuton();

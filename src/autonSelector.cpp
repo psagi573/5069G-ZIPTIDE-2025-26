@@ -1,10 +1,12 @@
 #include "autonSelector.h"
+#include "motion.h"
 #include "vex.h"
 
 using namespace vex;
 
 extern competition Competition;
 
+// Globals
 std::string autonRoutine = "none";
 int autonIndex = 0;
 
@@ -15,6 +17,85 @@ std::vector<std::string> autonList = {
     "Blue Right",
     "Skills"};
 
+// Forward declare auton functions (they live in main.cpp)
+void redLeftAuton();
+void redRightAuton();
+void blueLeftAuton();
+void blueRightAuton();
+void skillsAuton();
+void redLeftAuton()
+{
+    drive(10);
+}
+
+//////////////////////////////////////////////////////////////////////////
+void redRightAuton()
+{
+    RollerIntake.setVelocity(600, rpm);
+    // Out.setVelocity(200, rpm);
+    // Take.setVelocity(200, rpm);
+
+    RollerIntake.spin(forward);
+    drive(48.0);
+    wait(1.0, sec);
+    turn(15);
+    drive(20.0);
+    wait(0.5, sec);
+    drive(-20);
+    turn(90);
+    drive(40);
+    turn(110);
+    // put in loader thingy
+    drive(10);
+    wait(1, sec);
+    RollerIntake.stop();
+    drive(-55);
+    // outake.spin(reverse);
+}
+
+//////////////////////////////////////////////////////////////////////////
+void blueLeftAuton()
+{
+    drive(20);
+}
+
+//////////////////////////////////////////////////////////////////////////
+void blueRightAuton()
+{
+    turn(20);
+}
+
+//////////////////////////////////////////////////////////////////////////
+void skillsAuton()
+{
+    turn(180);
+}
+// Run auton based on selection
+void runAuton()
+{
+    if (autonRoutine == "Red Left")
+    {
+        redLeftAuton();
+    }
+    else if (autonRoutine == "Red Right")
+    {
+        redRightAuton();
+    }
+    else if (autonRoutine == "Blue Left")
+    {
+        blueLeftAuton();
+    }
+    else if (autonRoutine == "Blue Right")
+    {
+        blueRightAuton();
+    }
+    else if (autonRoutine == "Skills")
+    {
+        skillsAuton();
+    }
+}
+
+// ----------------- UI FUNCTIONS -----------------
 void updateBrainScreen()
 {
     Brain.Screen.clearScreen();
@@ -41,7 +122,6 @@ void updateBrainScreen()
     Brain.Screen.print("<");
     Brain.Screen.setCursor(11, 23);
     Brain.Screen.print(">");
-
     Brain.Screen.setCursor(10, 7);
     Brain.Screen.print("CONFIRM");
 }
@@ -61,18 +141,24 @@ void showFinalScreen()
 {
     Brain.Screen.clearScreen();
     Brain.Screen.setFillColor(black);
-    Brain.Screen.setPenColor(color(128, 128, 128));
     Brain.Screen.setFont(propXXL);
 
     int screenWidth = 480;
     int w1 = Brain.Screen.getStringWidth("5069G");
     int w2 = Brain.Screen.getStringWidth("ZIPTIDE");
 
+    Brain.Screen.setPenColor(white);
     Brain.Screen.printAt((screenWidth - w1) / 2, 100, "5069G");
+
     Brain.Screen.setPenColor(red);
     Brain.Screen.printAt((screenWidth - w2) / 2, 200, "ZIPTIDE");
+    inertial19.calibrate();
+    while (inertial19.isCalibrating())
+        wait(100, msec);
+    runAuton();
 }
 
+// ----------------- AUTON SELECTOR -----------------
 void autonSelector()
 {
     updateBrainScreen();
@@ -81,6 +167,7 @@ void autonSelector()
     bool confirmed = false;
     while (!confirmed)
     {
+        // Brain screen press
         if (Brain.Screen.pressing())
         {
             int x = Brain.Screen.xPosition();
@@ -88,48 +175,59 @@ void autonSelector()
 
             if (y >= 180 && y <= 220)
             {
-                if (x >= 40 && x <= 100)
+                if (x >= 40 && x <= 100) // Left button
                 {
                     autonIndex = (autonIndex - 1 + autonList.size()) % autonList.size();
+                    updateBrainScreen();
+                    updateControllerScreen();
+                    while (Brain.Screen.pressing())
+                        wait(10, msec); // debounce
                 }
-                else if (x >= 320 && x <= 380)
+                else if (x >= 320 && x <= 380) // Right button
                 {
                     autonIndex = (autonIndex + 1) % autonList.size();
+                    updateBrainScreen();
+                    updateControllerScreen();
+                    while (Brain.Screen.pressing())
+                        wait(10, msec);
                 }
-                else if (x >= 170 && x <= 270)
+                else if (x >= 170 && x <= 270) // Confirm
                 {
                     confirmed = true;
-                    break;
+                    while (Brain.Screen.pressing())
+                        wait(10, msec);
                 }
-                updateBrainScreen();
-                updateControllerScreen();
-                wait(250, msec);
             }
         }
 
+        // Controller input
         if (Controller1.ButtonLeft.pressing())
         {
             autonIndex = (autonIndex - 1 + autonList.size()) % autonList.size();
             updateBrainScreen();
             updateControllerScreen();
-            wait(300, msec);
+            while (Controller1.ButtonLeft.pressing())
+                wait(10, msec); // debounce
         }
         else if (Controller1.ButtonRight.pressing())
         {
             autonIndex = (autonIndex + 1) % autonList.size();
             updateBrainScreen();
             updateControllerScreen();
-            wait(300, msec);
+            while (Controller1.ButtonRight.pressing())
+                wait(10, msec);
         }
         else if (Controller1.ButtonA.pressing())
         {
             confirmed = true;
-            break;
+            while (Controller1.ButtonA.pressing())
+                wait(10, msec);
         }
 
         wait(10, msec);
     }
 
+    // Final screen + confirm
     showFinalScreen();
 
     autonRoutine = autonList[autonIndex];

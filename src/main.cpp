@@ -1,8 +1,8 @@
 /*----------------------------------------------------------------------------*/
 /*                                                                            */
 /*    Module:       main.cpp                                                  */
-/*    Author:       C:\Users\Rodri                                            */
-/*    Created:      Wed Sep 04 2024                                           */
+/*    Author:       C:\Users\psagi                                            */
+/*    Created:      Wed Sep 03 2025                                           */
 /*    Description:  V5 project                                                */
 /*                                                                            */
 /*----------------------------------------------------------------------------*/
@@ -32,15 +32,19 @@
 #include <algorithm> //allows you to use the algorith library/extention witch lets you use mroe advanced math algorithims such as sum of, mean, median, ect
 #include <cmath>     //allows you to use the cmath library/extention witch lets you do square root, absolute value, sin cos tan, ect
 #include "vex.h"     //you need it so vex stuff works
-// #include "auton.cpp"
+#include "PID.h"
+#include "odom.h"
+#include "motion.h"
+#include "autonSelector.h"
+#include "profile.h"
 
 using namespace vex; // you need it so vex stuff works
 
 motor_group R = motor_group(R6, R7, R8);
 motor_group L = motor_group(L1, L2, L3);
 drivetrain Drivetrain = drivetrain(R, L);
-motor_group outake = motor_group(Out, Take);
-motor_group scorer = motor_group(Out, Take, RollerIntake);
+// motor_group outake = motor_group(Out, Take);
+// motor_group scorer = motor_group(Out, Take, RollerIntake);
 
 competition Competition; // you need it so it works at a competition
 
@@ -60,7 +64,7 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
   R6.setStopping(brake);
   R7.setStopping(brake);
   R8.setStopping(brake);
-  outake.setStopping(coast);
+  // outake.setStopping(coast);
   RollerIntake.setStopping(coast);
 
   L1.setVelocity(600, rpm);
@@ -69,7 +73,7 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
   R6.setVelocity(600, rpm);
   R7.setVelocity(600, rpm);
   R8.setVelocity(600, rpm);
-  outake.setVelocity(600, rpm);
+  // outake.setVelocity(600, rpm);
   RollerIntake.setVelocity(600, rpm);
 
   /*
@@ -84,170 +88,135 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
     R.spin(forward, tovolt(Controller1.Axis3.position(percent) - (Controller1.Axis1.position(pct) * 6)), volt);     // controlls any motors on the right side of the drivetrain
     L.spin(forward, tovolt(Controller1.Axis3.position(percent) + (Controller1.Axis1.position(percent) * 6)), volt); // controlls any motors on the left side of the drivetrain
     wait(10, msec);
-    // Tank Control
-    // R6.spin(forward, Controller1.Axis2.value(), percent);
-    // R7.spin(forward, Controller1.Axis2.value(), percent);
-    // R8.spin(forward, Controller1.Axis2.value(), percent);
-    // L1.spin(forward, Controller1.Axis3.value(), percent);
-    // L2.spin(forward, Controller1.Axis3.value(), percent);
-    // L3.spin(forward, Controller1.Axis3.value(), percent);
-    // wait(10, msec);
-    /* BIG NOTE
-
-    R.spin(forward, ( Controller1.Axis3.position(percent)-Controller1.Axis1.position(percent) ) *2, rpm);
-    ---------------------------------------------------------------------------------------------^
-    You may notice this 2 right here, this number is either 1, 2, or 6 depending on what kind of motor your drivetrain uses
-
-    Red Motors --> put "1"
-    Green Motors --> put "2"
-    Blue Motors --> put "6"
-
-    */
-    /*
-    if you had 2-3 motors per side on your drivetrain you'd do something like this:
-
-    BackRight.spin(forward, Controller1.Axis3.position(percent)-Controller1.Axis1.position(percent), rpm);
-    MiddleRight.spin(forward, Controller1.Axis3.position(percent)-Controller1.Axis1.position(percent), rpm);
-    FrontRight.spin(forward, Controller1.Axis3.position(percent)-Controller1.Axis1.position(percent), rpm);
-    BackLeft.spin(forward, Controller1.Axis3.position(percent)+Controller1.Axis1.position(percent), rpm);
-    MiddleLeft.spin(forward, Controller1.Axis3.position(percent)+Controller1.Axis1.position(percent), rpm);
-    FrontLeft.spin(forward, Controller1.Axis3.position(percent)+Controller1.Axis1.position(percent), rpm);
-
-    Just copy paste the same code witht he extra motors, just make sure the Right side is + and the left sideis -
-    */
   }
-}
-int ArmControls()
-{
-  while (true)
-  {
-    if (Controller1.ButtonR1.pressing())
-    {
-      scorer.spin(forward);                        // Move arm forward when R1 is pressed again
-      waitUntil(!Controller1.ButtonR1.pressing()); // keeps it spining until the user let go of R1
-      scorer.stop();
-    }
-    wait(10, msec);
-  }
-}
+} /*
+ int ArmControls()
+ {
+   while (true)
+   {
+     if (Controller1.ButtonR1.pressing())
+     {
+       scorer.spin(forward);                        // Move arm forward when R1 is pressed again
+       waitUntil(!Controller1.ButtonR1.pressing()); // keeps it spining until the user let go of R1
+       scorer.stop();
+     }
+     wait(10, msec);
+   }
+ }
 
-int AControls()
-{
-  while (true)
-  {
-    if (Controller1.ButtonR2.pressing())
-    {
-      outake.spin(reverse);                        // Change direction to reverse when R2 is pressed
-      waitUntil(!Controller1.ButtonR2.pressing()); // keeps it spining until the user let go of R1
-      outake.stop();
-    }
-    wait(10, msec);
-  }
-}
+ int AControls()
+ {
+   while (true)
+   {
+     if (Controller1.ButtonR2.pressing())
+     {
+       outake.spin(reverse);                        // Change direction to reverse when R2 is pressed
+       waitUntil(!Controller1.ButtonR2.pressing()); // keeps it spining until the user let go of R1
+       outake.stop();
+     }
+     wait(10, msec);
+   }
+ }
 
-int rControls()
-{
-  while (true)
-  {
+ int rControls()
+ {
+   while (true)
+   {
 
-    if (Controller1.ButtonL1.pressing())
-    {
-      RollerIntake.spin(forward);
-      waitUntil(!Controller1.ButtonL1.pressing()); // keeps it spinning until the user let go of R1
-      RollerIntake.stop();
-    }
-    wait(10, msec);
-  }
-}
+     if (Controller1.ButtonL1.pressing())
+     {
+       RollerIntake.spin(forward);
+       waitUntil(!Controller1.ButtonL1.pressing()); // keeps it spinning until the user let go of R1
+       RollerIntake.stop();
+     }
+     wait(10, msec);
+   }
+ }
 
-int mControls()
-{
-  while (true)
-  {
-    if (Controller1.ButtonL2.pressing())
-    {
-      RollerIntake.spin(reverse);
-      waitUntil(!Controller1.ButtonL2.pressing()); // keeps it spinning until the user let go of R1
-      RollerIntake.stop();
-    }
-    wait(10, msec);
-  }
-}
+ int mControls()
+ {
+   while (true)
+   {
+     if (Controller1.ButtonL2.pressing())
+     {
+       RollerIntake.spin(reverse);
+       waitUntil(!Controller1.ButtonL2.pressing()); // keeps it spinning until the user let go of R1
+       RollerIntake.stop();
+     }
+     wait(10, msec);
+   }
+ }
 
-int LifterControls()
-{
-  bool Lifter1 = false;
-  while (true)
-  {
-    if (Controller1.ButtonB.pressing())
-    {
-      if (Lifter1)
-      {
-        Lifter1 = false;
-      }
-      else if (!Lifter1)
-      {
-        Lifter1 = true;
-      }
-      while (Controller1.ButtonB.pressing())
-      {
+ int LifterControls()
+ {
+   bool Lifter1 = false;
+   while (true)
+   {
+     if (Controller1.ButtonB.pressing())
+     {
+       if (Lifter1)
+       {
+         Lifter1 = false;
+       }
+       else if (!Lifter1)
+       {
+         Lifter1 = true;
+       }
+       while (Controller1.ButtonB.pressing())
+       {
 
-        wait(5, msec);
-      }
+         wait(5, msec);
+       }
 
-      if (Lifter1)
-      {
-        Lifter.set(true);
-      }
-      else
-      {
-        Lifter.set(false);
-      }
-    }
-  }
-}
-
+       if (Lifter1)
+       {
+         Lifter.set(true);
+       }
+       else
+       {
+         Lifter.set(false);
+       }
+     }
+   }
+ }
+ */
 // task colorsort;
 void usercontrol() // A function named "usercontrol", in this case, any code in the brackets will run once (unless in a loop) when its driver control
 {
   task a(DriveTrainControls); // creates a Thread Named "a" that runs the function "DriveTrainControls", This thread controls the drivetrain
-  task b(ArmControls);        // same as drivetrain controls but for the lifter
-  task c(LifterControls);
-  task d(AControls);
-  task e(rControls);
-  task f(mControls);
+  // task b(ArmControls);        // same as drivetrain controls but for the lifter
+  // task c(LifterControls);
+  // task d(AControls);
+  // task e(rControls);
+  // task f(mControls);
 }
 
 void pre_auton(void)
 {
-  // Initializing Robot Configuration. DO NOT REMOVE!
   vexcodeInit();
-
-  /*inertial19.calibrate();
-  while (inertial19.isCalibrating())
-  {
-    wait(100, msec);
-  }*/
+  /// autonSelector();
 }
-#include "PID.h"
-#include "odom.h"
-#include "motion.h"
-#include "autonSelector.h"
-#include "profile.h"
 
-/*startOdom(xRot, yRot, imu);
+/*    ___           ___           ___           ___           ___           ___
+     /\  \         /\__\         /\  \         /\  \         /\__\         /\  \
+    /::\  \       /:/  /         \:\  \       /::\  \       /::|  |       /::\  \
+   /:/\:\  \     /:/  /           \:\  \     /:/\:\  \     /:|:|  |      /:/\ \  \
+  /::\~\:\  \   /:/  /  ___       /::\  \   /:/  \:\  \   /:/|:|  |__   _\:\~\ \  \
+ /:/\:\ \:\__\ /:/__/  /\__\     /:/\:\__\ /:/__/ \:\__\ /:/ |:| /\__\ /\ \:\ \ \__\
+ \/__\:\/:/  / \:\  \ /:/  /    /:/  \/__/ \:\  \ /:/  / \/__|:|/:/  / \:\ \:\ \/__/
+      \::/  /   \:\  /:/  /    /:/  /       \:\  /:/  /      |:/:/  /   \:\ \:\__\
+      /:/  /     \:\/:/  /     \/__/         \:\/:/  /       |::/  /     \:\/:/  /
+     /:/  /       \::/  /                     \::/  /        /:/  /       \::/  /
+     \/__/         \/__/                       \/__/         \/__/         \/__/ */
 
-// Example usage
-drive(24.0, 0);        // Drive 24 inches, keep heading 0°
-turn(90.0);            // Turn to 90° heading
-arc(30.0, 90.0, true); // Arc left, 30" radius, 90° angle
-sweep(90.0, false);    // Sweep turn right 90° (left side moves)
-*/
+///////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////
 void auton() // A function named "auton", in this case, any code in the brackets will run once (unless in a loop) when its autonomous
 {
   RollerIntake.setVelocity(600, rpm);
-  Out.setVelocity(200, rpm);
-  Take.setVelocity(200, rpm);
+  // Out.setVelocity(200, rpm);
+  // Take.setVelocity(200, rpm);
 
   RollerIntake.spin(forward);
   drive(48.0);
@@ -264,29 +233,6 @@ void auton() // A function named "auton", in this case, any code in the brackets
   wait(1, sec);
   RollerIntake.stop();
   drive(-55);
-  outake.spin(reverse);
-
-  /*
- {
-   // Call your Red Left auton code here
-   turn(90.0);
- }
- else if (autonRoutine == "Red Right")
- {
- }
- else if (autonRoutine == "Blue Left")
- {
- }
- else if (autonRoutine == "Blue Right")
- {
- }
- else if (autonRoutine == "Skills")
- {
- }
- else
- {
-   // Default fallback or do nothing
- }*/
 }
 
 int main()
@@ -328,9 +274,10 @@ int main()
     Controller1.Screen.setCursor(2, 1);
     Controller1.Screen.print("Y: %.2f", currentPose.y);
     Controller1.Screen.setCursor(3, 1);
-    Controller1.Screen.print("t: %.2f", currentPose.theta);
+    printf("(%.2f, %.2f),", currentPose.x, currentPose.y);
+    fflush(stdout);
 
-    wait(100, msec); // Delay to avoid screen spam
+    wait(10, msec); // Delay to avoid screen spam
 
     task::sleep(10);
   }

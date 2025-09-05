@@ -1,4 +1,4 @@
-#include "bv2odom.h"
+/*#include "bv2odom.h"
 #include <cmath>
 #include "vex.h"
 #include "utils.h"
@@ -174,3 +174,4 @@ void setVelocitySmoothing(double aV, double aOmega)
 void setIMUWeight(double imuW) { imuWeight = clamp(imuW, 0.0, 1.0); }
 void setIMUJumpThreshold(double maxDeg) { maxImuJumpDeg = std::max(1.0, maxDeg); }
 void setUpdateHz(int hz) { updateHz = std::max(10, hz); }
+*/
