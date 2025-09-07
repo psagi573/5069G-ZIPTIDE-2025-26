@@ -76,12 +76,6 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
   // outake.setVelocity(600, rpm);
   RollerIntake.setVelocity(600, rpm);
 
-  /*
-  There a 3 stopping modes for all motors
-  "coast" --> makes the motors "ragdoll"/"die", They wont stop instantly, they will stop being powered, so the can still manually/pasively be spun
-  "brake" --> makes the motors first stop, and then "ragdoll", same as coast but first itll stop them in place
-  "hold" --> makes the motors stop and "hold" as the name implies, the motors stay/resist to stay at the same angle, this however drains motors and battery becouse the motor is still being powered to provide the resistance
-  */
   while (true)
   {
     // Arcade Control
@@ -194,7 +188,7 @@ void usercontrol() // A function named "usercontrol", in this case, any code in 
 void pre_auton(void)
 {
   vexcodeInit();
-  /// autonSelector();
+  autonSelector();
 }
 
 /*    ___           ___           ___           ___           ___           ___
@@ -214,25 +208,7 @@ void pre_auton(void)
 //////////////////////////////////////////////////////////////////////////
 void auton() // A function named "auton", in this case, any code in the brackets will run once (unless in a loop) when its autonomous
 {
-  RollerIntake.setVelocity(600, rpm);
-  // Out.setVelocity(200, rpm);
-  // Take.setVelocity(200, rpm);
-
-  RollerIntake.spin(forward);
-  drive(48.0);
-  wait(1.0, sec);
-  turn(15);
-  drive(20.0);
-  wait(0.5, sec);
-  drive(-20);
-  turn(90);
-  drive(40);
-  turn(110);
-  // put in loader thingy
-  drive(10);
-  wait(1, sec);
-  RollerIntake.stop();
-  drive(-55);
+  runAuton();
 }
 
 int main()
@@ -277,8 +253,6 @@ int main()
     printf("(%.2f, %.2f),", currentPose.x, currentPose.y);
     fflush(stdout);
 
-    wait(10, msec); // Delay to avoid screen spam
-
-    task::sleep(10);
+    wait(50, msec); // Delay to avoid screen spam
   }
 }

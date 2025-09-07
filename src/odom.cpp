@@ -124,6 +124,33 @@ void startOdom(rotation &xSensor, rotation &ySensor, inertial &imu)
     wait(10, msec);
 }
 
+// New function: startOdomAt with custom starting position
+void startOdomAt(rotation &xSensor, rotation &ySensor, inertial &imu, double startX, double startY, double startTheta)
+{
+    xRot = &xSensor;
+    yRot = &ySensor;
+    imuSensor = &imu;
+
+    xRot->resetPosition();
+    yRot->resetPosition();
+    imuSensor->resetRotation();
+
+    // Initialize the pose to the specified parameters
+    currentPose.x = startX;
+    currentPose.y = startY;
+    currentPose.theta = startTheta;
+
+    // Convert initial pose to prevX, prevY, prevThetaRad for odomTask
+    prevX = xRot->position(turns) * wheelCircumference + startX;
+    prevY = yRot->position(turns) * wheelCircumference + startY;
+    prevThetaRad = startTheta * (M_PI / 180.0); // convert deg to rad
+
+    odomRunning = true;
+    odomThread = thread(odomTask);
+
+    wait(10, msec);
+}
+
 void stopOdom()
 {
     if (odomRunning)

@@ -1,237 +1,211 @@
-#include "autonSelector.h"
-#include "motion.h"
 #include "vex.h"
+#include "odom.h"
+#include "autonselector.h"
+#include <string>
+#include <cmath>
 
 using namespace vex;
 
-extern competition Competition;
+// -------------------------
+// Configuration
+// -------------------------
+rotation *xRot;
+rotation *yRot;
+inertial *imuSensor;
 
-// Globals
-std::string autonRoutine = "none";
-int autonIndex = 0;
+// Replace these with your converted .c images
+extern const char *pathRightImage;
+extern const char *pathLeftImage;
+extern const char *ziptideLogo;
 
-std::vector<std::string> autonList = {
-    "Red Left",
-    "Red Right",
-    "Blue Left",
-    "Blue Right",
-    "Skills"};
-
-// Forward declare auton functions (they live in main.cpp)
-void redLeftAuton();
-void redRightAuton();
-void blueLeftAuton();
-void blueRightAuton();
-void skillsAuton();
-void redLeftAuton()
+// -------------------------
+// Auton Definition
+// -------------------------
+struct Auton
 {
-    drive(10);
-}
+    std::string name;
+    int points;
+    const char *pathImage;
+    double startX;
+    double startY;
+    double startTheta;
+};
 
-//////////////////////////////////////////////////////////////////////////
-void redRightAuton()
+Auton autons[] = {
+    {"Right 20pt", 20, pathRightImage, 0.0, 0.0, 0.0},
+    {"Left 15pt", 15, pathLeftImage, 0.0, 0.0, 0.0},
+    // Add more autons here
+};
+const int AUTON_COUNT = sizeof(autons) / sizeof(Auton);
+int selectedAuton = 0;
+
+// -------------------------
+// Selector States
+// -------------------------
+enum SelectorState
 {
-    RollerIntake.setVelocity(600, rpm);
-    // Out.setVelocity(200, rpm);
-    // Take.setVelocity(200, rpm);
+    AUTON_SELECT,
+    CALIBRATE,
+    CALIBRATING,
+    READY
+};
+SelectorState state = AUTON_SELECT;
 
-    RollerIntake.spin(forward);
-    drive(48.0);
-    wait(1.0, sec);
-    turn(15);
-    drive(20.0);
-    wait(0.5, sec);
-    drive(-20);
-    turn(90);
-    drive(40);
-    turn(110);
-    // put in loader thingy
-    drive(10);
-    wait(1, sec);
-    RollerIntake.stop();
-    drive(-55);
-    // outake.spin(reverse);
-}
-
-//////////////////////////////////////////////////////////////////////////
-void blueLeftAuton()
-{
-    drive(20);
-}
-
-//////////////////////////////////////////////////////////////////////////
-void blueRightAuton()
-{
-    turn(20);
-}
-
-//////////////////////////////////////////////////////////////////////////
-void skillsAuton()
-{
-    turn(180);
-}
-// Run auton based on selection
-void runAuton()
-{
-    if (autonRoutine == "Red Left")
-    {
-        redLeftAuton();
-    }
-    else if (autonRoutine == "Red Right")
-    {
-        redRightAuton();
-    }
-    else if (autonRoutine == "Blue Left")
-    {
-        blueLeftAuton();
-    }
-    else if (autonRoutine == "Blue Right")
-    {
-        blueRightAuton();
-    }
-    else if (autonRoutine == "Skills")
-    {
-        skillsAuton();
-    }
-}
-
-// ----------------- UI FUNCTIONS -----------------
-void updateBrainScreen()
+// -------------------------
+// Display Functions
+// -------------------------
+void displayAutonSelection()
 {
     Brain.Screen.clearScreen();
+    Brain.Screen.setFont(vex::mono20);
+    Brain.Screen.printAt(10, 20, autons[selectedAuton].name.c_str());
+    Brain.Screen.printAt(10, 50, "Points: %d", autons[selectedAuton].points);
+    // Brain.Screen.drawImage(10, 80, autons[selectedAuton].pathImage);
 
-    // Title
-    Brain.Screen.setFont(propXL);
-    Brain.Screen.setCursor(1, 9);
-    Brain.Screen.setPenColor(white);
-    Brain.Screen.print("5069G");
-
-    // Auton name center
-    Brain.Screen.setFont(propL);
-    Brain.Screen.setCursor(4, 5);
-    Brain.Screen.print("Auton: %s", autonList[autonIndex].c_str());
-
-    // Buttons
-    Brain.Screen.setFillColor(color(128, 128, 128));
-    Brain.Screen.drawRectangle(40, 180, 60, 40);   // Left
-    Brain.Screen.drawRectangle(320, 180, 60, 40);  // Right
-    Brain.Screen.drawRectangle(170, 180, 100, 40); // Confirm
-
-    Brain.Screen.setFont(monoM);
-    Brain.Screen.setCursor(11, 4);
-    Brain.Screen.print("<");
-    Brain.Screen.setCursor(11, 23);
-    Brain.Screen.print(">");
-    Brain.Screen.setCursor(10, 7);
-    Brain.Screen.print("CONFIRM");
-}
-
-void updateControllerScreen()
-{
     Controller1.Screen.clearScreen();
-    Controller1.Screen.setCursor(1, 1);
-    Controller1.Screen.print("5069G");
-    Controller1.Screen.setCursor(2, 1);
-    Controller1.Screen.print(autonList[autonIndex].c_str());
-    Controller1.Screen.setCursor(3, 1);
-    Controller1.Screen.print("L/R: Change A: Confirm");
+    Controller1.Screen.print(autons[selectedAuton].name.c_str());
 }
 
-void showFinalScreen()
+void displayCalibrationScreen()
+{
+    Brain.Screen.setFillColor(green);
+    Brain.Screen.clearScreen();
+    Brain.Screen.setFont(vex::mono20);
+    Brain.Screen.printAt(20, 50, "CALIBRATE");
+
+    Controller1.Screen.clearScreen();
+    Controller1.Screen.print("CALIBRATE");
+}
+
+void displayCalibrating()
 {
     Brain.Screen.clearScreen();
-    Brain.Screen.setFillColor(black);
-    Brain.Screen.setFont(propXXL);
+    Brain.Screen.setFillColor(green);
+    Brain.Screen.printAt(20, 50, "CALIBRATING...");
 
-    int screenWidth = 480;
-    int w1 = Brain.Screen.getStringWidth("5069G");
-    int w2 = Brain.Screen.getStringWidth("ZIPTIDE");
-
-    Brain.Screen.setPenColor(white);
-    Brain.Screen.printAt((screenWidth - w1) / 2, 100, "5069G");
-
-    Brain.Screen.setPenColor(red);
-    Brain.Screen.printAt((screenWidth - w2) / 2, 200, "ZIPTIDE");
-    inertial19.calibrate();
-    while (inertial19.isCalibrating())
-        wait(100, msec);
-    runAuton();
+    Controller1.Screen.clearScreen();
+    Controller1.Screen.print("CALIBRATING...");
 }
 
-// ----------------- AUTON SELECTOR -----------------
-void autonSelector()
+void displayReady()
 {
-    updateBrainScreen();
-    updateControllerScreen();
+    Brain.Screen.clearScreen();
+    // Brain.Screen.drawImage(10, 80, ziptideLogo);
+    Brain.Screen.setFont(vex::mono20);
+    Brain.Screen.setPenColor(white);
 
-    bool confirmed = false;
-    while (!confirmed)
+    thread readyTask(readyScreenTask);
+}
+
+int readyScreenTask()
+{
+    while (state == READY)
     {
-        // Brain screen press
-        if (Brain.Screen.pressing())
-        {
-            int x = Brain.Screen.xPosition();
-            int y = Brain.Screen.yPosition();
+        Pose p = getPose();
 
-            if (y >= 180 && y <= 220)
+        // Only update the numbers
+        Brain.Screen.setFont(mono20);
+        Brain.Screen.setPenColor(white);
+        Brain.Screen.printAt(10, 10, "X: %.2f  ", p.x); // extra spaces to overwrite old numbers
+        Brain.Screen.printAt(10, 30, "Y: %.2f  ", p.y);
+        Brain.Screen.printAt(10, 50, "Theta: %.2f  ", p.theta);
+
+        Controller1.Screen.clearLine();
+        Controller1.Screen.print("X: %.2f\nY: %.2f\nTheta: %.2f", p.x, p.y, p.theta);
+
+        wait(50, msec);
+    }
+    return 0;
+}
+
+// -------------------------
+// Calibration
+// -------------------------
+void startCalibration()
+{
+    state = CALIBRATING;
+    displayCalibrating();
+
+    // Calibrate IMU
+    imuSensor->calibrate();
+    while (imuSensor->isCalibrating())
+        wait(50, msec);
+
+    // Start odometry at selected auton start position
+    startOdomAt(*xRot, *yRot, *imuSensor,
+                autons[selectedAuton].startX,
+                autons[selectedAuton].startY,
+                autons[selectedAuton].startTheta);
+
+    // Rumble controller
+    Controller1.rumble("..");
+
+    state = READY;
+}
+
+// -------------------------
+// Selector Loop
+// -------------------------
+void autonSelectorLoop()
+{
+    displayAutonSelection();
+
+    while (true)
+    {
+        // Navigate autons
+        if (Controller1.ButtonLeft.pressing() && state == AUTON_SELECT)
+        {
+            selectedAuton = (selectedAuton - 1 + AUTON_COUNT) % AUTON_COUNT;
+            displayAutonSelection();
+            wait(200, msec);
+        }
+        if (Controller1.ButtonRight.pressing() && state == AUTON_SELECT)
+        {
+            selectedAuton = (selectedAuton + 1) % AUTON_COUNT;
+            displayAutonSelection();
+            wait(200, msec);
+        }
+
+        // Confirm / Calibrate
+        if (Controller1.ButtonA.pressing())
+        {
+            if (state == AUTON_SELECT)
             {
-                if (x >= 40 && x <= 100) // Left button
-                {
-                    autonIndex = (autonIndex - 1 + autonList.size()) % autonList.size();
-                    updateBrainScreen();
-                    updateControllerScreen();
-                    while (Brain.Screen.pressing())
-                        wait(10, msec); // debounce
-                }
-                else if (x >= 320 && x <= 380) // Right button
-                {
-                    autonIndex = (autonIndex + 1) % autonList.size();
-                    updateBrainScreen();
-                    updateControllerScreen();
-                    while (Brain.Screen.pressing())
-                        wait(10, msec);
-                }
-                else if (x >= 170 && x <= 270) // Confirm
-                {
-                    confirmed = true;
-                    while (Brain.Screen.pressing())
-                        wait(10, msec);
-                }
+                state = CALIBRATE;
+                displayCalibrationScreen();
+            }
+            else if (state == CALIBRATE)
+            {
+                startCalibration();
             }
         }
 
-        // Controller input
-        if (Controller1.ButtonLeft.pressing())
+        // Cancel calibration back to selection
+        if (Controller1.ButtonB.pressing() && state == CALIBRATE)
         {
-            autonIndex = (autonIndex - 1 + autonList.size()) % autonList.size();
-            updateBrainScreen();
-            updateControllerScreen();
-            while (Controller1.ButtonLeft.pressing())
-                wait(10, msec); // debounce
-        }
-        else if (Controller1.ButtonRight.pressing())
-        {
-            autonIndex = (autonIndex + 1) % autonList.size();
-            updateBrainScreen();
-            updateControllerScreen();
-            while (Controller1.ButtonRight.pressing())
-                wait(10, msec);
-        }
-        else if (Controller1.ButtonA.pressing())
-        {
-            confirmed = true;
-            while (Controller1.ButtonA.pressing())
-                wait(10, msec);
+            state = AUTON_SELECT;
+            displayAutonSelection();
         }
 
-        wait(10, msec);
+        // Update live pose if ready
+        if (state == READY)
+        {
+            displayReady();
+        }
+
+        wait(50, msec);
     }
+}
 
-    // Final screen + confirm
-    showFinalScreen();
+// -------------------------
+// Initialization
+// -------------------------
+void initPRSPro(rotation &xSensor, rotation &ySensor, inertial &imu)
+{
+    xRot = &xSensor;
+    yRot = &ySensor;
+    imuSensor = &imu;
 
-    autonRoutine = autonList[autonIndex];
-    Controller1.Screen.clearScreen();
-    Controller1.Screen.setCursor(2, 1);
-    Controller1.Screen.print("Selected: %s", autonRoutine.c_str());
+    // Start the selector loop
+    autonSelectorLoop();
 }

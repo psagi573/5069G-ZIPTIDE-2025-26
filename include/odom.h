@@ -14,7 +14,7 @@ struct Pose
 
 // Initialize and start odometry tracking
 void startOdom(vex::rotation &xSensor, vex::rotation &ySensor, vex::inertial &imu);
-
+void startOdomAt(vex::rotation &xSensor, vex::rotation &ySensor, vex::inertial &imu, double startX, double startY, double startTheta);
 // Stop odometry tracking cleanly
 void stopOdom();
 
