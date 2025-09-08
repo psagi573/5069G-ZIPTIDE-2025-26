@@ -41,12 +41,19 @@ double PID::compute(double target, double current, bool turn)
             error += 360;
         if (error > 180)
             error -= 360;
+        if (fabs(error) < 5)
+        {
+            integral += error;
+            integral = clamp(integral, -100.0, 100.0);
+        }
     }
-
-    if (fabs(error) < 10)
+    else
     {
-        integral += error;
-        integral = clamp(integral, -100.0, 100.0);
+        if (fabs(error) < 3)
+        {
+            integral += error;
+            integral = clamp(integral, -100.0, 100.0);
+        }
     }
 
     double derivative = error - prevError;

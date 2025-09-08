@@ -16,6 +16,9 @@ const double wheelTrack = 14.5; // in inches (left-right distance)
 PID distPID(0.15, 0, 0.9);
 PID fastTurnPID(0.043, 0.0001, 0.39);
 
+const double maxVelDefault = 45; // max linear speed in inches/sec
+const double accelDefault = 120; // acceleration in inches/sec^2
+
 // Set left and right motor voltages
 void setDrive(double left, double right)
 {
@@ -252,4 +255,76 @@ void Sweep(double targetAngleDeg, bool left, bool forward)
     }
 
     stop();
+}
+
+void driveTo(double targetX, double targetY)
+{
+    distPID.reset();
+
+    // Current pose
+    Pose pose = getPose();
+    double dx = targetX - pose.x;
+    double dy = targetY - pose.y;
+
+    // Distance and angle to target
+    double distance = sqrt(dx * dx + dy * dy);
+    double angleToTarget = atan2(dy, dx) * (180.0 / M_PI); // in degrees
+
+    // Normalize to [0,360)
+    if (angleToTarget < 0)
+        angleToTarget += 360.0;
+
+    double headingError = angleToTarget - pose.theta;
+    // Wrap heading error to [-180,180]
+    if (headingError > 180)
+        headingError -= 360;
+    if (headingError < -180)
+        headingError += 360;
+
+    // If heading off by more than 10°, turn first
+    if (fabs(headingError) > 10.0)
+    {
+        turn(angleToTarget); // use your existing turn() function
+    }
+
+    // Initialize motion profile for the distance
+    Profile profile(maxVelDefault, accelDefault);
+
+    double startX = getPose().x;
+    double startY = getPose().y;
+    double lastError = 0;
+    int elapsed = 0;
+    const int timeout = 4000; // extend timeout for long moves
+
+    while (true)
+    {
+        Pose currPose = getPose();
+        double traveledX = currPose.x - startX;
+        double traveledY = currPose.y - startY;
+        double traveled = sqrt(traveledX * traveledX + traveledY * traveledY);
+        double remaining = distance - traveled;
+        double direction = (remaining >= 0) ? 1.0 : -1.0;
+
+        // Exit condition
+        if ((fabs(remaining) < 0.5 && fabs(remaining - lastError) < 0.1) || elapsed > timeout)
+            break;
+
+        // Distance PID output
+        double linearOut = distPID.compute(distance, traveled);
+        double velLimit = profile.getTargetVelocity(fabs(remaining), traveled, direction);
+
+        linearOut = clamp(linearOut, -velLimit, velLimit);
+
+        // Scale to volts
+        double leftVolt = linearOut * 11.0;
+        double rightVolt = linearOut * 11.0;
+
+        setDrive(leftVolt, rightVolt);
+
+        lastError = remaining;
+        elapsed += 10;
+        wait(10, msec);
+    }
+
+    setDrive(0, 0);
 }
