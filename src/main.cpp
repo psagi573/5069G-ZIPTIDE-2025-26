@@ -37,6 +37,7 @@
 #include "motion.h"
 #include "autonSelector.h"
 #include "profile.h"
+#include "autons.h"
 
 using namespace vex; // you need it so vex stuff works
 
@@ -188,7 +189,7 @@ void usercontrol() // A function named "usercontrol", in this case, any code in 
 void pre_auton(void)
 {
   vexcodeInit();
-  autonSelector();
+  initPRSPro(Xaxis, Yaxis, inertial19);
 }
 
 /*    ___           ___           ___           ___           ___           ___
@@ -215,7 +216,6 @@ int main()
 {
 
   vexcodeInit();
-  startOdom(Xaxis, Yaxis, inertial19);
   pre_auton();
   Competition.autonomous(auton);          // what function to run when autonomous begins, in this case it would run the function "auton"
   Competition.drivercontrol(usercontrol); // what function to run when driver control begins, in this case it would run the function "usercontrol"

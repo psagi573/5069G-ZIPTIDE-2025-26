@@ -13,3 +13,4 @@ void autonSelector();
 
 // Run the chosen auton
 void runAuton();
+void initPRSPro(rotation &xSensor, rotation &ySensor, inertial &imu);

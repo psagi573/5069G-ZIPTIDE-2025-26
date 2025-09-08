@@ -1,4 +1,4 @@
-#include "trajectory.h"
+/*#include "trajectory.h"
 #include "utils.h"
 
 void TrajectoryBuilder::addWaypoint(double x, double y, double theta)
@@ -29,3 +29,4 @@ std::vector<TrajSample> TrajectoryBuilder::buildTrajectory(double dtSeconds, int
     // 4. Generate full trajectory
     return profiler.generateTrajectory(dtSeconds);
 }
+*/

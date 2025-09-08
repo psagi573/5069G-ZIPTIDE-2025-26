@@ -1,6 +1,7 @@
 #include "vex.h"
 #include "odom.h"
 #include "autonselector.h"
+#include "autons.h"
 #include <string>
 #include <cmath>
 
@@ -25,20 +26,31 @@ struct Auton
 {
     std::string name;
     int points;
-    const char *pathImage;
     double startX;
     double startY;
     double startTheta;
 };
 
 Auton autons[] = {
-    {"Right 20pt", 20, pathRightImage, 0.0, 0.0, 0.0},
-    {"Left 15pt", 15, pathLeftImage, 0.0, 0.0, 0.0},
+    {"Red Left", 20, 0.0, 0.0, 0.0},
+    {"Red Right", 15, 0.0, 0.0, 0.0},
     // Add more autons here
 };
 const int AUTON_COUNT = sizeof(autons) / sizeof(Auton);
 int selectedAuton = 0;
 
+
+void runAuton()
+{
+    if (autonRoutine == "Red Left")
+    {
+        redLeftAuton();
+    }
+    else if (autonRoutine == "Red Right")
+    {
+        redRightAuton();
+    }
+}
 // -------------------------
 // Selector States
 // -------------------------
@@ -87,15 +99,6 @@ void displayCalibrating()
     Controller1.Screen.print("CALIBRATING...");
 }
 
-void displayReady()
-{
-    Brain.Screen.clearScreen();
-    // Brain.Screen.drawImage(10, 80, ziptideLogo);
-    Brain.Screen.setFont(vex::mono20);
-    Brain.Screen.setPenColor(white);
-
-    thread readyTask(readyScreenTask);
-}
 
 int readyScreenTask()
 {
@@ -117,6 +120,19 @@ int readyScreenTask()
     }
     return 0;
 }
+
+
+void displayReady()
+{
+    Brain.Screen.clearScreen();
+    // Brain.Screen.drawImage(10, 80, ziptideLogo);
+    Brain.Screen.setFont(vex::mono20);
+    Brain.Screen.setPenColor(white);
+
+    thread readyTask(readyScreenTask);
+}
+
+
 
 // -------------------------
 // Calibration
@@ -191,6 +207,7 @@ void autonSelectorLoop()
         if (state == READY)
         {
             displayReady();
+            autonRoutine = autons[selectedAuton].name;
         }
 
         wait(50, msec);

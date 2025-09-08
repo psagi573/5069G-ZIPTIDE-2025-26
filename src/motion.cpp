@@ -19,12 +19,15 @@ PID fastTurnPID(0.043, 0.0001, 0.39);
 const double maxVelDefault = 45; // max linear speed in inches/sec
 const double accelDefault = 120; // acceleration in inches/sec^2
 
+const double maxVelshort = 45; // max linear speed in inches/sec
+const double accelshort = 120; // acceleration in inches/sec^2
+
 // Set left and right motor voltages
 void setDrive(double left, double right)
 {
     // Clamp values for safety
-    left = clamp(left, -11.0, 11.0);
-    right = clamp(right, -11.0, 11.0);
+    left = clamp(left, -12.0, 12.0);
+    right = clamp(right, -12.0, 12.0);
 
     // Send voltage to motors (volt units)
     L1.spin(fwd, left, volt);
@@ -86,7 +89,7 @@ void drive(double distInches)
         linearOut = clamp(linearOut, -1.0, 1.0);
 
         // Scale to volts
-        linearOut = linearOut * 11.0;
+        linearOut = linearOut * 12.0;
         // Check and apply minimum voltage
         linearOut = minVolt(linearOut);
 
@@ -126,8 +129,8 @@ void turn(double targetHeading)
         // Clamp output between -1 and 1, then scale to volts
         turnOutput = clamp(turnOutput, -1.0, 1.0);
 
-        double leftVolt = 11 * turnOutput;
-        double rightVolt = -11 * turnOutput;
+        double leftVolt = 12 * turnOutput;
+        double rightVolt = -12 * turnOutput;
 
         // Apply minimum voltage
         leftVolt = minVolt(leftVolt);
@@ -191,7 +194,7 @@ void arc(double radiusInches, double angleDeg, bool forward, bool right)
 
         // PID output for forward motion
         double linearOut = distPID.compute(targetDistance, traveled);
-        linearOut = clamp(linearOut, -1.0, 1.0) * 11.0; // Convert to volts
+        linearOut = clamp(linearOut, -1.0, 1.0) * 12.0; // Convert to volts
 
         // Apply forward/reverse factor
         linearOut *= (forward ? 1.0 : -1.0);
@@ -234,7 +237,7 @@ void Sweep(double targetAngleDeg, bool left, bool forward)
 
         // Clamp turn output and convert to volts
         turnOutput = clamp(turnOutput, -1.0, 1.0);
-        double Volts = minVolt(turnOutput * 11.0);
+        double Volts = minVolt(turnOutput * 12.0);
 
         // Apply forward/reverse factor
         Volts *= (forward ? 1.0 : -1.0);
@@ -257,71 +260,86 @@ void Sweep(double targetAngleDeg, bool left, bool forward)
     stop();
 }
 
+// Drive to a target (x,y) using odom, motion profiling, and PID
 void driveTo(double targetX, double targetY)
 {
     distPID.reset();
+    fastTurnPID.reset();
 
-    // Current pose
-    Pose pose = getPose();
-    double dx = targetX - pose.x;
-    double dy = targetY - pose.y;
-
-    // Distance and angle to target
+    Pose start = getPose();
+    double dx = targetX - start.x;
+    double dy = targetY - start.y;
     double distance = sqrt(dx * dx + dy * dy);
-    double angleToTarget = atan2(dy, dx) * (180.0 / M_PI); // in degrees
 
-    // Normalize to [0,360)
-    if (angleToTarget < 0)
-        angleToTarget += 360.0;
+    // Initialize motion profile (short vs long move scaling)
+    double maxVel = (distance < 10) ? maxVelshort : maxVelDefault;
+    double accel = (distance < 10) ? accelshort : accelDefault;
+    Profile profile(maxVel, accel);
 
-    double headingError = angleToTarget - pose.theta;
-    // Wrap heading error to [-180,180]
-    if (headingError > 180)
-        headingError -= 360;
-    if (headingError < -180)
-        headingError += 360;
-
-    // If heading off by more than 10°, turn first
-    if (fabs(headingError) > 10.0)
-    {
-        turn(angleToTarget); // use your existing turn() function
-    }
-
-    // Initialize motion profile for the distance
-    Profile profile(maxVelDefault, accelDefault);
-
-    double startX = getPose().x;
-    double startY = getPose().y;
-    double lastError = 0;
+    double traveled = 0;
+    double lastRemaining = distance;
     int elapsed = 0;
-    const int timeout = 4000; // extend timeout for long moves
+    const int timeout = 4000; // safety timeout
 
     while (true)
     {
-        Pose currPose = getPose();
-        double traveledX = currPose.x - startX;
-        double traveledY = currPose.y - startY;
-        double traveled = sqrt(traveledX * traveledX + traveledY * traveledY);
+        Pose pose = getPose();
+
+        // --- Distance calculations ---
+        double dxt = pose.x - start.x;
+        double dyt = pose.y - start.y;
+        traveled = sqrt(dxt * dxt + dyt * dyt);
+
         double remaining = distance - traveled;
         double direction = (remaining >= 0) ? 1.0 : -1.0;
 
-        // Exit condition
-        if ((fabs(remaining) < 0.5 && fabs(remaining - lastError) < 0.1) || elapsed > timeout)
+
+        // --- Dynamic exit condition ---
+        bool closeEnough = fabs(remaining) < 0.5;
+        bool nearlyStopped = fabs(remaining - lastRemaining) < 0.05;
+        if ((closeEnough && nearlyStopped) || elapsed > timeout)
             break;
+        
+        // --- Heading calculations ---
+        double angleToTarget = atan2(targetY - pose.y, targetX - pose.x) * (180.0 / M_PI);
+        if (angleToTarget < 0)
+            angleToTarget += 360.0;
 
-        // Distance PID output
-        double linearOut = distPID.compute(distance, traveled);
-        double velLimit = profile.getTargetVelocity(fabs(remaining), traveled, direction);
+        double headingError = angleToTarget - pose.theta;
+        if (headingError > 180)
+            headingError -= 360;
+        if (headingError < -180)
+            headingError += 360;
 
-        linearOut = clamp(linearOut, -velLimit, velLimit);
+        // --- Feedforward (motion profile) ---
+        double ffVel = profile.getTargetVelocity(fabs(remaining), traveled, direction);
 
-        // Scale to volts
-        double leftVolt = linearOut * 11.0;
-        double rightVolt = linearOut * 11.0;
+        // --- Feedback (PID) ---
+        double pidCorrection = distPID.compute(distance, traveled);
+        pidCorrection *= maxVelDefault; // scale to velocity domain
+
+        // --- Combine feedforward + feedback ---
+        double commandedVel = ffVel + pidCorrection;
+        commandedVel = clamp(commandedVel, -maxVelDefault, maxVelDefault);
+
+        // --- Turn blending (soft heading correction) ---
+        double turnOut = 0.0;
+        if (fabs(headingError) > 2.0)
+        { // ignore tiny noise
+            turnOut = fastTurnPID.compute(headingError, 0);
+            // scale softly so it doesn’t fight drive
+            double blend = 0.15 + 0.1 * (1.0 - fabs(commandedVel) / maxVelDefault);
+            turnOut = clamp(turnOut * blend, -0.3, 0.3); // volts fraction
+        }
+
+        // --- Convert velocity (in/s) to volts ---
+        double linearVolts = (commandedVel / maxVelDefault) * 12.0;
+        double leftVolt = linearVolts - turnOut * 12.0;
+        double rightVolt = linearVolts + turnOut * 12.0;
 
         setDrive(leftVolt, rightVolt);
 
-        lastError = remaining;
+        lastRemaining = remaining;
         elapsed += 10;
         wait(10, msec);
     }

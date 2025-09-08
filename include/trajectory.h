@@ -1,4 +1,4 @@
-#pragma once
+/*#pragma once
 #include "path.h"
 #include "profile.h"
 #include <vector>
@@ -20,4 +20,4 @@ public:
 private:
     SplinePath splineGen;
     MotionProfiler2D profiler;
-};
+};*/
