@@ -14,9 +14,9 @@ thread odomThread;
 bool odomRunning = false;
 
 // Sensor pointers
-rotation *xRot;
-rotation *yRot;
-inertial *imuSensor;
+extern rotation *xRot;
+extern rotation *yRot;
+extern inertial *imuSensor;
 
 // Robot senser offsets
 const double xOffset = 2;  // inches from center to X (lateral) tracker 0 inches

@@ -189,7 +189,7 @@ void usercontrol() // A function named "usercontrol", in this case, any code in 
 void pre_auton(void)
 {
   vexcodeInit();
-  initPRSPro(Xaxis, Yaxis, inertial19);
+  PRSPro(Xaxis, Yaxis, inertial19);
 }
 
 /*    ___           ___           ___           ___           ___           ___

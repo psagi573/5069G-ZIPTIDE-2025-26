@@ -18,7 +18,7 @@ inertial *imuSensor;
 extern const char *pathRightImage;
 extern const char *pathLeftImage;
 extern const char *ziptideLogo;
-
+std::string autonRoutine;
 // -------------------------
 // Auton Definition
 // -------------------------
@@ -217,7 +217,7 @@ void autonSelectorLoop()
 // -------------------------
 // Initialization
 // -------------------------
-void initPRSPro(rotation &xSensor, rotation &ySensor, inertial &imu)
+void PRSPro(rotation &xSensor, rotation &ySensor, inertial &imu)
 {
     xRot = &xSensor;
     yRot = &ySensor;
