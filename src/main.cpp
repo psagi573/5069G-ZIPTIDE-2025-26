@@ -39,13 +39,16 @@
 #include "profile.h"
 #include "autons.h"
 
+// Ensure 'autons' and 'selectedAuton' are declared as extern if defined elsewhere
+
+
 using namespace vex; // you need it so vex stuff works
 
 motor_group R = motor_group(R6, R7, R8);
 motor_group L = motor_group(L1, L2, L3);
 drivetrain Drivetrain = drivetrain(R, L);
-// motor_group outake = motor_group(Out, Take);
-// motor_group scorer = motor_group(Out, Take, RollerIntake);
+ motor_group outake = motor_group(Out, Take);
+ motor_group scorer = motor_group(Out, Take, RollerIntake);
 
 competition Competition; // you need it so it works at a competition
 
@@ -84,7 +87,7 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
     L.spin(forward, tovolt(Controller1.Axis3.position(percent) + (Controller1.Axis1.position(percent) * 6)), volt); // controlls any motors on the left side of the drivetrain
     wait(10, msec);
   }
-} /*
+} 
  int ArmControls()
  {
    while (true)
@@ -174,23 +177,31 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
      }
    }
  }
- */
+ 
 // task colorsort;
 void usercontrol() // A function named "usercontrol", in this case, any code in the brackets will run once (unless in a loop) when its driver control
 {
   task a(DriveTrainControls); // creates a Thread Named "a" that runs the function "DriveTrainControls", This thread controls the drivetrain
-  // task b(ArmControls);        // same as drivetrain controls but for the lifter
-  // task c(LifterControls);
-  // task d(AControls);
-  // task e(rControls);
-  // task f(mControls);
+  task b(ArmControls);        // same as drivetrain controls but for the lifter
+  task c(LifterControls);
+  task d(AControls);
+  task e(rControls);
+  task f(mControls);
 }
 
 void pre_auton(void)
 {
   vexcodeInit();
-  PRSPro(Xaxis, Yaxis, inertial19);
+  inertial19.calibrate();
+  while (inertial19.isCalibrating())
+  {
+    wait(50, msec);
+  }
+  //autonSelectorLoop();
 }
+
+
+
 
 /*    ___           ___           ___           ___           ___           ___
      /\  \         /\__\         /\  \         /\  \         /\__\         /\  \
@@ -209,7 +220,7 @@ void pre_auton(void)
 //////////////////////////////////////////////////////////////////////////
 void auton() // A function named "auton", in this case, any code in the brackets will run once (unless in a loop) when its autonomous
 {
-  runAuton();
+  driveTo(24,0);
 }
 
 int main()
@@ -219,7 +230,14 @@ int main()
   pre_auton();
   Competition.autonomous(auton);          // what function to run when autonomous begins, in this case it would run the function "auton"
   Competition.drivercontrol(usercontrol); // what function to run when driver control begins, in this case it would run the function "usercontrol"
+  startOdom(Xaxis, Yaxis, inertial19);
 
+
+
+  // startOdomAt(Xaxis, Yaxis, inertial19,
+  //             autons[selectedAuton].startX,
+  //             autons[selectedAuton].startY,
+  //             autons[selectedAuton].startTheta);
   while (true)
   {
     // Get raw encoder values
@@ -250,6 +268,7 @@ int main()
     Controller1.Screen.setCursor(2, 1);
     Controller1.Screen.print("Y: %.2f", currentPose.y);
     Controller1.Screen.setCursor(3, 1);
+    Controller1.Screen.print("T: %.2f", currentPose.theta);
     printf("(%.2f, %.2f),", currentPose.x, currentPose.y);
     fflush(stdout);
 

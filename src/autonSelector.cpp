@@ -22,18 +22,11 @@ std::string autonRoutine;
 // -------------------------
 // Auton Definition
 // -------------------------
-struct Auton
-{
-    std::string name;
-    int points;
-    double startX;
-    double startY;
-    double startTheta;
-};
+
 
 Auton autons[] = {
-    {"Red Left", 20, 0.0, 0.0, 0.0},
-    {"Red Right", 15, 0.0, 0.0, 0.0},
+    {"Red Left", 20, 10.0, 10.0, 10.0},
+    {"Red Right", 15, 20.0, 20.0, 20.0},
     // Add more autons here
 };
 const int AUTON_COUNT = sizeof(autons) / sizeof(Auton);
@@ -75,6 +68,7 @@ void displayAutonSelection()
     // Brain.Screen.drawImage(10, 80, autons[selectedAuton].pathImage);
 
     Controller1.Screen.clearScreen();
+    Controller1.Screen.setCursor(1, 1);
     Controller1.Screen.print(autons[selectedAuton].name.c_str());
 }
 
@@ -86,6 +80,7 @@ void displayCalibrationScreen()
     Brain.Screen.printAt(20, 50, "CALIBRATE");
 
     Controller1.Screen.clearScreen();
+    Controller1.Screen.setCursor(1, 1);
     Controller1.Screen.print("CALIBRATE");
 }
 
@@ -96,40 +91,15 @@ void displayCalibrating()
     Brain.Screen.printAt(20, 50, "CALIBRATING...");
 
     Controller1.Screen.clearScreen();
+    Controller1.Screen.setCursor(1, 1);
     Controller1.Screen.print("CALIBRATING...");
-}
-
-
-int readyScreenTask()
-{
-    while (state == READY)
-    {
-        Pose p = getPose();
-
-        // Only update the numbers
-        Brain.Screen.setFont(mono20);
-        Brain.Screen.setPenColor(white);
-        Brain.Screen.printAt(10, 10, "X: %.2f  ", p.x); // extra spaces to overwrite old numbers
-        Brain.Screen.printAt(10, 30, "Y: %.2f  ", p.y);
-        Brain.Screen.printAt(10, 50, "Theta: %.2f  ", p.theta);
-
-        Controller1.Screen.clearLine();
-        Controller1.Screen.print("X: %.2f\nY: %.2f\nTheta: %.2f", p.x, p.y, p.theta);
-
-        wait(50, msec);
-    }
-    return 0;
 }
 
 
 void displayReady()
 {
     Brain.Screen.clearScreen();
-    // Brain.Screen.drawImage(10, 80, ziptideLogo);
-    Brain.Screen.setFont(vex::mono20);
-    Brain.Screen.setPenColor(white);
-
-    thread readyTask(readyScreenTask);
+    Controller1.Screen.clearScreen();
 }
 
 
@@ -143,15 +113,11 @@ void startCalibration()
     displayCalibrating();
 
     // Calibrate IMU
-    imuSensor->calibrate();
-    while (imuSensor->isCalibrating())
+    inertial19.calibrate();
+    while (inertial19.isCalibrating())
         wait(50, msec);
 
     // Start odometry at selected auton start position
-    startOdomAt(*xRot, *yRot, *imuSensor,
-                autons[selectedAuton].startX,
-                autons[selectedAuton].startY,
-                autons[selectedAuton].startTheta);
 
     // Rumble controller
     Controller1.rumble("..");
@@ -217,12 +183,17 @@ void autonSelectorLoop()
 // -------------------------
 // Initialization
 // -------------------------
-void PRSPro(rotation &xSensor, rotation &ySensor, inertial &imu)
-{
-    xRot = &xSensor;
-    yRot = &ySensor;
-    imuSensor = &imu;
+// void PRSPro(rotation &xSensor, rotation &ySensor, inertial &imu)
+// {
+//     xRot = &xSensor;
+//     yRot = &ySensor;
+//     imuSensor = &imu;
 
-    // Start the selector loop
-    autonSelectorLoop();
-}
+//     startOdomAt(*xRot, *yRot, *imuSensor,
+//                 autons[selectedAuton].startX,
+//                 autons[selectedAuton].startY,
+//                 autons[selectedAuton].startTheta);
+
+//     // Start the selector loop
+//     autonSelectorLoop();
+// }

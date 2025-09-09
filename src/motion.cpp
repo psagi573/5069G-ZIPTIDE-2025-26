@@ -300,16 +300,16 @@ void driveTo(double targetX, double targetY)
         if ((closeEnough && nearlyStopped) || elapsed > timeout)
             break;
         
-        // --- Heading calculations ---
-        double angleToTarget = atan2(targetY - pose.y, targetX - pose.x) * (180.0 / M_PI);
-        if (angleToTarget < 0)
-            angleToTarget += 360.0;
+        // // --- Heading calculations ---
+        // double angleToTarget = atan2(targetY - pose.y, targetX - pose.x) * (180.0 / M_PI);
+        // if (angleToTarget < 0)
+        //     angleToTarget += 360.0;
 
-        double headingError = angleToTarget - pose.theta;
-        if (headingError > 180)
-            headingError -= 360;
-        if (headingError < -180)
-            headingError += 360;
+        // double headingError = angleToTarget - pose.theta;
+        // if (headingError > 180)
+        //     headingError -= 360;
+        // if (headingError < -180)
+        //     headingError += 360;
 
         // --- Feedforward (motion profile) ---
         double ffVel = profile.getTargetVelocity(fabs(remaining), traveled, direction);
@@ -323,19 +323,19 @@ void driveTo(double targetX, double targetY)
         commandedVel = clamp(commandedVel, -maxVelDefault, maxVelDefault);
 
         // --- Turn blending (soft heading correction) ---
-        double turnOut = 0.0;
-        if (fabs(headingError) > 2.0)
-        { // ignore tiny noise
-            turnOut = fastTurnPID.compute(headingError, 0);
-            // scale softly so it doesn’t fight drive
-            double blend = 0.15 + 0.1 * (1.0 - fabs(commandedVel) / maxVelDefault);
-            turnOut = clamp(turnOut * blend, -0.3, 0.3); // volts fraction
-        }
+        // double turnOut = 0.0;
+        // if (fabs(headingError) > 2.0)
+        // { // ignore tiny noise
+        //     turnOut = fastTurnPID.compute(headingError, 0);
+        //     // scale softly so it doesn’t fight drive
+        //     double blend = 0.15 + 0.1 * (1.0 - fabs(commandedVel) / maxVelDefault);
+        //     turnOut = clamp(turnOut * blend, -0.15, 0.15); // volts fraction
+        // }
 
         // --- Convert velocity (in/s) to volts ---
         double linearVolts = (commandedVel / maxVelDefault) * 12.0;
-        double leftVolt = linearVolts - turnOut * 12.0;
-        double rightVolt = linearVolts + turnOut * 12.0;
+        double leftVolt = linearVolts * 12.0;
+        double rightVolt = linearVolts * 12.0;
 
         setDrive(leftVolt, rightVolt);
 
@@ -344,5 +344,5 @@ void driveTo(double targetX, double targetY)
         wait(10, msec);
     }
 
-    setDrive(0, 0);
+    stop();
 }
