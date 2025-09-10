@@ -43,7 +43,6 @@
 
 
 using namespace vex; // you need it so vex stuff works
-
 motor_group R = motor_group(R6, R7, R8);
 motor_group L = motor_group(L1, L2, L3);
 drivetrain Drivetrain = drivetrain(R, L);
@@ -52,9 +51,17 @@ drivetrain Drivetrain = drivetrain(R, L);
 
 competition Competition; // you need it so it works at a competition
 
-float tovolt(float percent)
+float tovolt(float percentage)
 {
-  return (percent * 12.0 / 100.0);
+// if (percentage>=0)
+// { 
+// double percentage = 1.2*pow(1.043,percentage) - 1.2 + 0.2*percentage;
+// }
+// else{
+//   percentage = -percentage; percentage = 1.2*pow(1.043,percentage) - 1.2 + 0.2*percentage; // When a new percentage value is calculated, make it negative for backwards movement. percentage = -percentage;
+// }
+  
+  return (percentage * 12.0 / 100.0);
 }
 
 int DriveTrainControls() // we create a integer function named "DriveTrainControls", later in the code we plan to turnpid this into a Thread that controls the drivetrain
@@ -62,13 +69,13 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
   // IN ORDER FOR THIS TO WORK, ALL MOTORS ON THE RIGHT SIDE OF THE DRIVETRAIN MUST BE SET TO "REVERSE"
 
   // Makes the motors set to "coast" when they arent being used aka the joystick isnt being moved
-  L1.setStopping(brake);
-  L2.setStopping(brake);
-  L3.setStopping(brake);
-  R6.setStopping(brake);
-  R7.setStopping(brake);
-  R8.setStopping(brake);
-  // outake.setStopping(coast);
+  L1.setStopping(coast);
+  L2.setStopping(coast);
+  L3.setStopping(coast);
+  R6.setStopping(coast);
+  R7.setStopping(coast);
+  R8.setStopping(coast);
+  outake.setStopping(coast);
   RollerIntake.setStopping(coast);
 
   L1.setVelocity(600, rpm);
@@ -77,18 +84,18 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
   R6.setVelocity(600, rpm);
   R7.setVelocity(600, rpm);
   R8.setVelocity(600, rpm);
-  // outake.setVelocity(600, rpm);
+  outake.setVelocity(600, rpm);
   RollerIntake.setVelocity(600, rpm);
 
   while (true)
   {
     // Arcade Control
-    R.spin(forward, tovolt(Controller1.Axis3.position(percent) - (Controller1.Axis1.position(pct) * 6)), volt);     // controlls any motors on the right side of the drivetrain
-    L.spin(forward, tovolt(Controller1.Axis3.position(percent) + (Controller1.Axis1.position(percent) * 6)), volt); // controlls any motors on the left side of the drivetrain
+    R.spin(forward, tovolt(Controller1.Axis3.position(pct) - (Controller1.Axis1.position(pct) * 6)), volt);     // controlls any motors on the right side of the drivetrain
+    L.spin(forward, tovolt(Controller1.Axis3.position(pct) + (Controller1.Axis1.position(pct) * 6)), volt); // controlls any motors on the left side of the drivetrain
     wait(10, msec);
   }
 } 
- int ArmControls()
+ int SystemControls()
  {
    while (true)
    {
@@ -102,7 +109,7 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
    }
  }
 
- int AControls()
+ int OutakeControls()
  {
    while (true)
    {
@@ -116,7 +123,7 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
    }
  }
 
- int rControls()
+ int IntakeControls()
  {
    while (true)
    {
@@ -131,7 +138,7 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
    }
  }
 
- int mControls()
+ int Intake2Controls()
  {
    while (true)
    {
@@ -177,16 +184,70 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
      }
    }
  }
- 
+
+
+
+  int LoaderControls()
+ {
+   bool Loader1 = false;
+   while (true)
+   {
+     if (Controller1.ButtonB.pressing())
+     {
+       if (Loader1)
+       {
+         Loader1 = false;
+       }
+       else if (!Loader1)
+       {
+         Loader1 = true;
+       }
+       while (Controller1.ButtonB.pressing())
+       {
+
+         wait(5, msec);
+       }
+
+       if (Loader1)
+       {
+         Loader.set(true);
+       }
+       else
+       {
+         Loader.set(false);
+       }
+     }
+   }
+ }
+
+  int Colorsortcontrols()
+ {
+   while (true)
+   {
+     Color.setLightPower(100, percent);
+
+     if (Color.color() == vex::color::red)
+     {
+        if (Color.isNearObject() == true) 
+        {
+          Trapdoor.set(true);
+          task::sleep(1000);
+          Trapdoor.set(false);
+        }
+      }
+   }
+ }
 // task colorsort;
 void usercontrol() // A function named "usercontrol", in this case, any code in the brackets will run once (unless in a loop) when its driver control
 {
   task a(DriveTrainControls); // creates a Thread Named "a" that runs the function "DriveTrainControls", This thread controls the drivetrain
-  task b(ArmControls);        // same as drivetrain controls but for the lifter
+  task b(SystemControls);        // same as drivetrain controls but for the lifter
   task c(LifterControls);
-  task d(AControls);
-  task e(rControls);
-  task f(mControls);
+  task d(OutakeControls);
+  task e(IntakeControls);
+  task f(Intake2Controls);
+  task g(LoaderControls);
+  task h(Colorsortcontrols);
 }
 
 void pre_auton(void)

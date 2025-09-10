@@ -15,9 +15,12 @@ extern motor R7;
 extern motor R8;
 extern controller Controller2;
 extern digital_out Lifter;
+extern digital_out Loader;
+extern digital_out Trapdoor;
 extern motor Out;
 extern motor Take;
 extern motor RollerIntake;
+extern optical Color;
 
 /**
  * Used to initialize code/tasks/devices added using tools in VEXcode Pro.
