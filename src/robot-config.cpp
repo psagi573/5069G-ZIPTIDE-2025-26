@@ -16,15 +16,15 @@ motor L3 = motor(PORT14, ratio6_1, true);
 motor R6 = motor(PORT18, ratio6_1, false);
 motor R7 = motor(PORT19, ratio6_1, false);
 motor R8 = motor(PORT20, ratio6_1, false);
-motor Out = motor(PORT1, ratio18_1, true);
-motor Take = motor(PORT9, ratio18_1, false);
+motor Out = motor(PORT1, ratio18_1, false);
+motor Take = motor(PORT3, ratio18_1, true);
 motor RollerIntake = motor(PORT10, ratio6_1, false);
 rotation Yaxis = rotation(PORT15, false);
 rotation Xaxis = rotation(PORT16, true);
 inertial inertial19 = inertial(PORT11);
-digital_out Lifter = digital_out(Brain.ThreeWirePort.A);
-digital_out Trapdoor = digital_out(Brain.ThreeWirePort.B);
-digital_out Loader = digital_out(Brain.ThreeWirePort.C);
+digital_out Lifter = digital_out(Brain.ThreeWirePort.H);
+digital_out Trapdoor = digital_out(Brain.ThreeWirePort.G);
+digital_out Loader = digital_out(Brain.ThreeWirePort.F);
 optical Color = optical(PORT17);
 
 // VEXcode generated functions

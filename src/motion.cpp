@@ -13,7 +13,7 @@ const double wheelTrack = 14.5; // in inches (left-right distance)
 // Motor groups
 
 // PID class values
-PID distPID(0.15, 0, 0.9);
+PID distPID(0.15, 0, 0.99);
 PID fastTurnPID(0.043, 0.0001, 0.39);
 
 const double maxVelDefault = 45; // max linear speed in inches/sec
@@ -43,21 +43,21 @@ void setDrive(double left, double right)
 void stop()
 {
     // Stop all motors
-    L1.stop(brake);
-    L2.stop(brake);
-    L3.stop(brake);
-    R6.stop(brake);
-    R7.stop(brake);
-    R8.stop(brake);
+    L1.stop(coast);
+    L2.stop(coast);
+    L3.stop(coast);
+    R6.stop(coast);
+    R7.stop(coast);
+    R8.stop(coast);
 }
 
 // Check volatage and apply minimum voltage if needed
 double minVolt(double v)
 {
-    if (v > -3.0 && v < 0)
-        return -3.0;
-    if (v > 0 && v < 3.0)
-        return 3.0;
+    if (v > -2.0 && v < 0)
+        return -2.0;
+    if (v > 0 && v < 2.0)
+        return 2.0;
     return v;
 }
 
@@ -89,7 +89,7 @@ void drive(double distInches)
         linearOut = clamp(linearOut, -1.0, 1.0);
 
         // Scale to volts
-        linearOut = linearOut * 12.0;
+        linearOut = linearOut * 10.0;
         // Check and apply minimum voltage
         linearOut = minVolt(linearOut);
 

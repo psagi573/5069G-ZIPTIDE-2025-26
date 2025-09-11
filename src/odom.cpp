@@ -19,8 +19,8 @@ extern rotation *yRot;
 extern inertial *imuSensor;
 
 // Robot sensor offsets
-const double xOffset = -5.7;  // inches from center to X (lateral) tracker 0 inches
-const double yOffset = 0.4; // inches from center to Y (longitudinal) tracker 1.9 inches
+const double xOffset = -12.1;  // inches from center to X (lateral) tracker 0 inches
+const double yOffset = -1.1; // inches from center to Y (longitudinal) tracker 1.9 inches
 
 // Wheel settings
 const double odomWheelDiameter = 2.0;
