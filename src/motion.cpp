@@ -51,6 +51,18 @@ void stop()
     R8.stop(coast);
 }
 
+
+void stops()
+{
+    // Stop all motors
+    L1.stop(brake);
+    L2.stop(brake);
+    L3.stop(brake);
+    R6.stop(brake);
+    R7.stop(brake);
+    R8.stop(brake);
+}
+
 // Check volatage and apply minimum voltage if needed
 double minVolt(double v)
 {
@@ -146,7 +158,7 @@ void turn(double targetHeading)
         wait(10, msec);
     }
 
-    stop();
+    stops();
 }
 
 void arc(double radiusInches, double angleDeg, bool forward, bool right)

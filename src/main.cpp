@@ -48,7 +48,6 @@ drivetrain Drivetrain = drivetrain(R, L);
 motor_group outake = motor_group(Out, Take);
 motor_group scorer = motor_group(Out, Take, RollerIntake);
 
-
 competition Competition; // you need it so it works at a competition
 
 float tovolt(float percentage)
@@ -105,35 +104,34 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
   while (true)
   {
     // Read joystick values
-  int four = Controller1.Axis3.position(percent);
-  int tur = Controller1.Axis1.position(percent) * 6;
+    int four = Controller1.Axis3.position(percent);
+    int tur = Controller1.Axis1.position(percent) * 6;
+    // int ture = Controller1.Axis1.position(percent);
+    // // Determine left and right motor voltages
+    int leftVolt = tovolt(four + tur);
+    int rightVolt = tovolt(four - tur);
 
-  // Determine left and right motor voltages
-  int leftVolt = tovolt(four + tur);
-  int rightVolt = tovolt(four - tur);
+    // // Detect turning in place
+    // brakeType driveBrake;
 
-  // Detect turning in place
-  brakeType driveBrake;
-  
-  if (abs(four) < 5 && abs(tur) > 10) {
-      driveBrake = brakeType::brake;
-    } else {
-      driveBrake = brakeType::coast;
-    }
-  
+    // if (abs(four) < 5 && abs(tur) > 10)
+    // {
+    //   driveBrake = brakeType::brake;
+    // }
+    // else
+    // {
+    //   driveBrake = brakeType::coast;
+    // }
 
+    // // Apply brake mode to all drivetrain motors
+    // L.setStopping(driveBrake);
+    // R.setStopping(driveBrake);
 
-  // Apply brake mode to all drivetrain motors
-  L.setStopping(driveBrake);
-  R.setStopping(driveBrake);
-
-  // Spin motors
-  L.spin(forward, leftVolt, volt);
-  R.spin(forward, rightVolt, volt);
-
-  wait(10, msec);
-}
-
+    // // Spin motors
+    L.spin(forward, leftVolt, volt);
+    R.spin(forward, rightVolt, volt);
+    wait(10, msec);
+  }
 }
 
 int SystemControls()
@@ -262,9 +260,7 @@ int LoaderControls()
 int Colorsortcontrols()
 {
 
-
-
-   bool Trapdoor1 = false;
+  bool Trapdoor1 = false;
   while (true)
   {
     if (Controller1.ButtonY.pressing())
@@ -350,7 +346,22 @@ void pre_auton(void)
 //////////////////////////////////////////////////////////////////////////
 void auton() // A function named "auton", in this case, any code in the brackets will run once (unless in a loop) when its autonomous
 {
-  drive(24);
+  outake.setStopping(coast);
+  RollerIntake.setStopping(coast);
+
+  L1.setVelocity(600, rpm);
+  L2.setVelocity(600, rpm);
+  L3.setVelocity(600, rpm);
+  R6.setVelocity(600, rpm);
+  R7.setVelocity(600, rpm);
+  R8.setVelocity(600, rpm);
+  outake.setVelocity(600, rpm);
+  RollerIntake.setVelocity(600, rpm);
+  Trapdoor.set(true);
+
+
+ RollerIntake.spin(forward);
+ drive(24);
 }
 
 int main()
