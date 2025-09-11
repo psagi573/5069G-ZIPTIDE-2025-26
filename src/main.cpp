@@ -48,6 +48,7 @@ drivetrain Drivetrain = drivetrain(R, L);
 motor_group outake = motor_group(Out, Take);
 motor_group scorer = motor_group(Out, Take, RollerIntake);
 
+
 competition Competition; // you need it so it works at a competition
 
 float tovolt(float percentage)
@@ -112,18 +113,19 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
   int rightVolt = tovolt(four - tur);
 
   // Detect turning in place
-  bool turningInPlace = abs(four) < 5 && abs(tur) > 10;
+  brakeType driveBrake;
+  
+  if (abs(four) < 5 && abs(tur) > 10) {
+      driveBrake = brakeType::brake;
+    } else {
+      driveBrake = brakeType::coast;
+    }
+  
 
-  // Set brake mode based on motion type
-  brakeType driveBrake = turningInPlace ? brake : coast;
 
   // Apply brake mode to all drivetrain motors
-  L1.setStopping(driveBrake);
-  L2.setStopping(driveBrake);
-  L3.setStopping(driveBrake);
-  R6.setStopping(driveBrake);
-  R7.setStopping(driveBrake);
-  R8.setStopping(driveBrake);
+  L.setStopping(driveBrake);
+  R.setStopping(driveBrake);
 
   // Spin motors
   L.spin(forward, leftVolt, volt);
