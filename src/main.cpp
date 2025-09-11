@@ -103,23 +103,35 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
 
   while (true)
   {
-    // Arcade Control
-    // int four = Controller1.Axis3.position(pct);
-    // int tur = Controller1.Axis1.position(pct);
+    // Read joystick values
+  int four = Controller1.Axis3.position(percent);
+  int tur = Controller1.Axis1.position(percent) * 6;
 
-    //     // Apply exponential curve
-    // int foExpo = getExpoValue(four);
-    // int tuExpo = getExpoValue(tur) * 6; // your turn scaling
+  // Determine left and right motor voltages
+  int leftVolt = tovolt(four + tur);
+  int rightVolt = tovolt(four - tur);
 
-    // // Arcade drive
-    // R.spin(forward, tovolt(foExpo - tuExpo), volt);
-    // L.spin(forward, tovolt(foExpo + tuExpo), volt);
+  // Detect turning in place
+  bool turningInPlace = abs(four) < 5 && abs(tur) > 10;
 
-    R.spin(forward, tovolt(Controller1.Axis3.position(percent) - (Controller1.Axis1.position(pct) * 6)), volt);     // controlls any motors on the right side of the drivetrain
-    L.spin(forward, tovolt(Controller1.Axis3.position(percent) + (Controller1.Axis1.position(percent) * 6)), volt); // controlls any motors on the left side of the drivetrain
+  // Set brake mode based on motion type
+  brakeType driveBrake = turningInPlace ? brake : coast;
 
-    wait(10, msec); // you need this to prevent wasted resources
-  }
+  // Apply brake mode to all drivetrain motors
+  L1.setStopping(driveBrake);
+  L2.setStopping(driveBrake);
+  L3.setStopping(driveBrake);
+  R6.setStopping(driveBrake);
+  R7.setStopping(driveBrake);
+  R8.setStopping(driveBrake);
+
+  // Spin motors
+  L.spin(forward, leftVolt, volt);
+  R.spin(forward, rightVolt, volt);
+
+  wait(10, msec);
+}
+
 }
 
 int SystemControls()
