@@ -355,13 +355,50 @@ void auton() // A function named "auton", in this case, any code in the brackets
   R6.setVelocity(600, rpm);
   R7.setVelocity(600, rpm);
   R8.setVelocity(600, rpm);
-  outake.setVelocity(600, rpm);
+  Out.setVelocity(200, rpm);
+  Take.setVelocity(200, rpm);
+  outake.setVelocity(200, rpm);
   RollerIntake.setVelocity(600, rpm);
   Trapdoor.set(true);
 
 
- RollerIntake.spin(forward);
- drive(24);
+
+
+  RollerIntake.spin(forward);
+  drive(18.5);
+  wait(0.5, sec);
+  drive(8);
+  wait(0.3, sec);
+  turn(100);
+  drive(31);
+  wait(0.5, sec);
+  turn(150);
+  wait(0.3, sec);
+  Lifter.set(true);
+  wait(0.7, sec);
+  drive(-24);
+  outake.spin(forward);
+
+
+
+
+
+
+  // RollerIntake.spin(forward);
+  // outake.spin(forward);
+  // drive(19);
+  // wait(0.5, sec);
+  // drive(8);
+  // wait(0.3, sec);
+  // turn(260);
+  // outake.stop();
+  // drive(28);
+  // Loader.set(true);
+  // turn(207);
+  // drive(18);
+  // wait(10,sec);
+
+
 }
 
 int main()
