@@ -13,7 +13,7 @@ const double wheelTrack = 14.5; // in inches (left-right distance)
 // Motor groups
 
 // PID class values
-PID distPID(0.15, 0, 0.99);
+PID distPID(0.05, 0, 0.4);
 PID fastTurnPID(0.043, 0.0001, 0.39);
 
 const double maxVelDefault = 45; // max linear speed in inches/sec
@@ -98,10 +98,10 @@ void drive(double distInches)
         // Compute linear output (PID)
         double linearOut = distPID.compute(target, traveled);
         // Clamp linearOut to [-1,+1]
-        linearOut = clamp(linearOut, -1.0, 1.0);
+        //linearOut = clamp(linearOut, -1.0, 1.0);
 
         // Scale to volts
-        linearOut = linearOut * 10.0;
+        linearOut = linearOut * 12.0;
         // Check and apply minimum voltage
         linearOut = minVolt(linearOut);
 
@@ -119,7 +119,7 @@ void drive(double distInches)
         wait(10, msec);
     }
 
-    stop();
+    stops();
 }
 
 void turn(double targetHeading)

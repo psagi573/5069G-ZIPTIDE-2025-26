@@ -48,6 +48,9 @@ drivetrain Drivetrain = drivetrain(R, L);
 motor_group outake = motor_group(Out, Take);
 motor_group scorer = motor_group(Out, Take, RollerIntake);
 
+
+
+
 competition Competition; // you need it so it works at a competition
 
 float tovolt(float percentage)
@@ -81,16 +84,14 @@ int getExpoValue(int joystickValue)
 int DriveTrainControls() // we create a integer function named "DriveTrainControls", later in the code we plan to turnpid this into a Thread that controls the drivetrain
 {
   // IN ORDER FOR THIS TO WORK, ALL MOTORS ON THE RIGHT SIDE OF THE DRIVETRAIN MUST BE SET TO "REVERSE"
-
-  // Makes the motors set to "coast" when they arent being used aka the joystick isnt being moved
   L1.setStopping(brake);
   L2.setStopping(brake);
   L3.setStopping(brake);
   R6.setStopping(brake);
   R7.setStopping(brake);
   R8.setStopping(brake);
-  outake.setStopping(coast);
-  RollerIntake.setStopping(coast);
+  outake.setStopping(brake);
+  RollerIntake.setStopping(brake);
 
   L1.setVelocity(600, rpm);
   L2.setVelocity(600, rpm);
@@ -98,14 +99,15 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
   R6.setVelocity(600, rpm);
   R7.setVelocity(600, rpm);
   R8.setVelocity(600, rpm);
-  outake.setVelocity(600, rpm);
+  outake.setVelocity(200, rpm);
   RollerIntake.setVelocity(600, rpm);
+  // Makes the motors set to "coast" when they arent being used aka the joystick isnt being moved
 
   while (true)
   {
     // Read joystick values
     int four = Controller1.Axis3.position(percent);
-    int tur = Controller1.Axis1.position(percent) * 6;
+    int tur = Controller1.Axis1.position(percent);
     // int ture = Controller1.Axis1.position(percent);
     // // Determine left and right motor voltages
     int leftVolt = tovolt(four + tur);
@@ -363,24 +365,26 @@ void auton() // A function named "auton", in this case, any code in the brackets
 
 
 
+  //////Right side 3 blocks auton//////
+
 
   RollerIntake.spin(forward);
   drive(18.5);
-  wait(0.5, sec);
+  //wait(0.5, sec);
   drive(8);
-  wait(0.3, sec);
+  //wait(0.3, sec);
   turn(100);
   drive(31);
-  wait(0.5, sec);
+  //wait(0.5, sec);
   turn(150);
-  wait(0.3, sec);
+  //wait(0.3, sec);
   Lifter.set(true);
   wait(0.7, sec);
-  drive(-24);
+  drive(-18);
   outake.spin(forward);
 
 
-
+///////////////////////////////////////////////////////
 
 
 
