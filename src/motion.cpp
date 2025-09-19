@@ -93,6 +93,9 @@ void drive(double distInches)
         double dx = pose.x - startX;
         double dy = pose.y - startY;
         double traveled = sqrt(dx * dx + dy * dy);
+        if (distInches < 0){
+            traveled = -traveled;
+        }
         double error = target - traveled;
 
         // Compute linear output (PID)

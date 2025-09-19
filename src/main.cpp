@@ -292,24 +292,11 @@ int Colorsortcontrols()
     }
   }
 
-  // while (true)
-  // {
-  //   Color.setLightPower(100, percent);
-
-  //   if (Color.color() == vex::color::red)
-  //   {
-  //     if (Color.isNearObject() == true)
-  //     {
-  //       Trapdoor.set(true);
-  //       task::sleep(1000);
-  //       Trapdoor.set(false);
-  //     }
-  //   }
-  // }
 }
-// task colorsort;
+task colorsort;
 void usercontrol() // A function named "usercontrol", in this case, any code in the brackets will run once (unless in a loop) when its driver control
 {
+  colorsort.stop();
   task a(DriveTrainControls); // creates a Thread Named "a" that runs the function "DriveTrainControls", This thread controls the drivetrain
   task b(SystemControls);     // same as drivetrain controls but for the lifter
   task c(LifterControls);
@@ -331,6 +318,43 @@ void pre_auton(void)
   // autonSelectorLoop();
 }
 
+bool Trap;
+std::string BlockColor;
+int Colorcontrols()
+{
+  Color.setLightPower(100, percent);
+  while (true)
+    {
+      if(!Trap){
+        Trapdoor.set(false);
+      }
+
+
+      if(Trap){
+        Trapdoor.set(true);
+      //   if(BlockColor == "red"){
+      //     if (Color.color() == vex::color::red){
+      //     if (Color.isNearObject() == true)
+      //     {
+      //       Trapdoor.set(true);
+      //       waitUntil(Color.color() != vex::color::red);
+      //       Trapdoor.set(false);
+      //     }
+      //   }
+      // }
+      //   else{
+      //     if (Color.color() == vex::color::blue){
+      //     if (Color.isNearObject() == true)
+      //     {
+      //       Trapdoor.set(true);
+      //       waitUntil(Color.color() != vex::color::blue);
+      //       Trapdoor.set(false);
+      //     }
+      //   }
+      //   }
+    }
+    }
+}
 /*    ___           ___           ___           ___           ___           ___
      /\  \         /\__\         /\  \         /\  \         /\__\         /\  \
     /::\  \       /:/  /         \:\  \       /::\  \       /::|  |       /::\  \
@@ -351,6 +375,9 @@ void auton() // A function named "auton", in this case, any code in the brackets
   outake.setStopping(coast);
   RollerIntake.setStopping(coast);
 
+  colorsort = task(Colorcontrols);
+  BlockColor = "red";
+  Trap = false;
   L1.setVelocity(600, rpm);
   L2.setVelocity(600, rpm);
   L3.setVelocity(600, rpm);
@@ -361,48 +388,53 @@ void auton() // A function named "auton", in this case, any code in the brackets
   Take.setVelocity(200, rpm);
   outake.setVelocity(200, rpm);
   RollerIntake.setVelocity(600, rpm);
-  Trapdoor.set(true);
+  
 
 
-
-  //////Right side 3 blocks auton//////
-
-
+//////////////right quals auton//////////
   RollerIntake.spin(forward);
   drive(18.5);
-  //wait(0.5, sec);
-  drive(8);
-  //wait(0.3, sec);
-  turn(100);
-  drive(31);
-  //wait(0.5, sec);
-  turn(150);
-  //wait(0.3, sec);
-  Lifter.set(true);
-  wait(0.7, sec);
-  drive(-18);
+  drive(9);
+  turn(243);
+  drive(-15);
   outake.spin(forward);
+  wait(0.8, sec); 
+  outake.stop(); 
+  drive(50);
+  // turn(195);
+  // Loader.set(true);
+  // Lifter.set(true);
+  // wait(0.2, sec);
+  // drive(13);
+  // wait(0.7, sec);
+  // Trap = true;
+  // wait(0.3, sec);
+  // drive(-10);
+  // turn(203);
+  // drive(-22);
+  // outake.spin(forward);
 
-
-///////////////////////////////////////////////////////
-
+ 
+  //////left side elims auton//////
 
 
   // RollerIntake.spin(forward);
-  // outake.spin(forward);
-  // drive(19);
-  // wait(0.5, sec);
+  // drive(18.5);
   // drive(8);
-  // wait(0.3, sec);
-  // turn(260);
-  // outake.stop();
-  // drive(28);
+  // turn(240);
+  // drive(39.5);
+  // turn(195);
   // Loader.set(true);
-  // turn(207);
-  // drive(18);
-  // wait(10,sec);
-
-
+  // Lifter.set(true);
+  // wait(0.2, sec);
+  // drive(13);
+  // wait(0.7, sec);
+  // Trap = true;
+  // wait(0.3, sec);
+  // drive(-10);
+  // turn(203);
+  // drive(-22);
+  // outake.spin(forward);
 }
 
 int main()

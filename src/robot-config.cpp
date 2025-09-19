@@ -26,7 +26,7 @@ inertial inertial19 = inertial(PORT11);
 digital_out Lifter = digital_out(Brain.ThreeWirePort.H);
 digital_out Trapdoor = digital_out(Brain.ThreeWirePort.G);
 digital_out Loader = digital_out(Brain.ThreeWirePort.F);
-optical Color = optical(PORT17);
+optical Color = optical(PORT4);
 
 // VEXcode generated functions
 // define variable for remote controller enable/disable
