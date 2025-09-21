@@ -38,6 +38,7 @@
 #include "autonSelector.h"
 #include "profile.h"
 #include "autons.h"
+#include <string>
 
 // Ensure 'autons' and 'selectedAuton' are declared as extern if defined elsewhere
 
@@ -47,9 +48,6 @@ motor_group L = motor_group(L1, L2, L3);
 drivetrain Drivetrain = drivetrain(R, L);
 motor_group outake = motor_group(Out, Take);
 motor_group scorer = motor_group(Out, Take, RollerIntake);
-
-
-
 
 competition Competition; // you need it so it works at a competition
 
@@ -291,7 +289,6 @@ int Colorsortcontrols()
       }
     }
   }
-
 }
 task colorsort;
 void usercontrol() // A function named "usercontrol", in this case, any code in the brackets will run once (unless in a loop) when its driver control
@@ -307,9 +304,101 @@ void usercontrol() // A function named "usercontrol", in this case, any code in 
   task h(Colorsortcontrols);
 }
 
+int autonSelected = 0;
+bool autonConfirmed = false;
+
+// List of auton names
+const char *autonNames[4] = {
+    "Left Rush",
+    "Right Rush",
+    "Skills",
+    "Safe Mid"};
+
+void updateScreens()
+{
+  // Clear and redraw Brain
+  Brain.Screen.clearScreen();
+  Brain.Screen.setCursor(1, 1);
+  if (!autonConfirmed)
+  {
+    Brain.Screen.print("Select Auton: %s", autonNames[autonSelected]);
+  }
+  else
+  {
+    Brain.Screen.print("Confirmed: %s", autonNames[autonSelected]);
+  }
+
+  // Clear and redraw Controller
+  Controller1.Screen.clearScreen();
+  Controller1.Screen.setCursor(0, 0);
+  if (!autonConfirmed)
+  {
+    Controller1.Screen.print("Auton: %s", autonNames[autonSelected]);
+  }
+  else
+  {
+    Controller1.Screen.print("Confirmed: %s", autonNames[autonSelected]);
+  }
+}
+
+void autonSelector()
+{
+  // Initial draw
+  updateScreens();
+
+  while (!autonConfirmed)
+  {
+    if (Controller1.ButtonR1.pressing())
+    {
+      autonSelected = (autonSelected + 1) % 4; // cycle forward
+      updateScreens();
+      wait(300, msec); // debounce
+    }
+    if (Controller1.ButtonL1.pressing())
+    {
+      autonSelected = (autonSelected - 1 + 4) % 4; // cycle backward
+      updateScreens();
+      wait(300, msec); // debounce
+    }
+    if (Controller1.ButtonA.pressing())
+    {
+      // First press shows confirm message
+      Brain.Screen.clearScreen();
+      Brain.Screen.setCursor(1, 1);
+      Brain.Screen.print("Confirm: %s", autonNames[autonSelected]);
+
+      Controller1.Screen.clearScreen();
+      Controller1.Screen.setCursor(0, 0);
+      Controller1.Screen.print("Confirm: %s", autonNames[autonSelected]);
+
+      // Wait for release
+      while (Controller1.ButtonA.pressing())
+      {
+        wait(20, msec);
+      }
+      // Wait for second press
+      while (!Controller1.ButtonA.pressing())
+      {
+        wait(20, msec);
+      }
+      while (Controller1.ButtonA.pressing())
+      {
+        wait(20, msec);
+      }
+
+      autonConfirmed = true;
+      Brain.Screen.clearScreen(); // clear after confirm
+      Controller1.Screen.clearScreen();
+      break;
+    }
+    wait(20, msec);
+  }
+}
+
 void pre_auton(void)
 {
   vexcodeInit();
+  //autonSelector();
   inertial19.calibrate();
   while (inertial19.isCalibrating())
   {
@@ -318,42 +407,43 @@ void pre_auton(void)
   // autonSelectorLoop();
 }
 
-bool Trap;
-std::string BlockColor;
+bool Trap = false;                        // whether to enable sorting
+vex::color targetColor = vex::color::red; // set target color
+
 int Colorcontrols()
 {
   Color.setLightPower(100, percent);
+
   while (true)
+  {
+    if (!Trap)
     {
-      if(!Trap){
-        Trapdoor.set(false);
+      Trapdoor.set(false); // keep closed if Trap disabled
+      continue;
+    }
+
+    // Only check if object is nearby
+    if (Color.isNearObject())
+    {
+      // Check if the color matches
+      if (Color.color() == targetColor)
+      {
+        Trapdoor.set(true); // open trapdoor
+        task::sleep(1000);   // wait 1000 milliseconds
       }
-
-
-      if(Trap){
-        Trapdoor.set(true);
-      //   if(BlockColor == "red"){
-      //     if (Color.color() == vex::color::red){
-      //     if (Color.isNearObject() == true)
-      //     {
-      //       Trapdoor.set(true);
-      //       waitUntil(Color.color() != vex::color::red);
-      //       Trapdoor.set(false);
-      //     }
-      //   }
-      // }
-      //   else{
-      //     if (Color.color() == vex::color::blue){
-      //     if (Color.isNearObject() == true)
-      //     {
-      //       Trapdoor.set(true);
-      //       waitUntil(Color.color() != vex::color::blue);
-      //       Trapdoor.set(false);
-      //     }
-      //   }
-      //   }
+      else
+      {
+        Trapdoor.set(false); // keep it closed
+      }
     }
+    else
+    {
+      Trapdoor.set(false); // nothing near -> close
     }
+
+    wait(20, msec); // small delay to avoid CPU hog
+  }
+  return 0;
 }
 /*    ___           ___           ___           ___           ___           ___
      /\  \         /\__\         /\  \         /\  \         /\__\         /\  \
@@ -376,8 +466,8 @@ void auton() // A function named "auton", in this case, any code in the brackets
   RollerIntake.setStopping(coast);
 
   colorsort = task(Colorcontrols);
-  BlockColor = "red";
-  Trap = false;
+  targetColor = vex::color::blue;
+  Trap = true;
   L1.setVelocity(600, rpm);
   L2.setVelocity(600, rpm);
   L3.setVelocity(600, rpm);
@@ -388,19 +478,114 @@ void auton() // A function named "auton", in this case, any code in the brackets
   Take.setVelocity(200, rpm);
   outake.setVelocity(200, rpm);
   RollerIntake.setVelocity(600, rpm);
-  
 
 
-//////////////right quals auton//////////
   RollerIntake.spin(forward);
-  drive(18.5);
-  drive(9);
-  turn(243);
-  drive(-15);
-  outake.spin(forward);
-  wait(0.8, sec); 
-  outake.stop(); 
-  drive(50);
+
+  //   switch (autonSelected) {
+  //     case 0:
+  //       outake.setStopping(coast);
+  //       RollerIntake.setStopping(coast);
+
+  //       colorsort = task(Colorcontrols);
+  //       targetColor = vex::color::red;
+  //       Trap = true;
+  //       L1.setVelocity(600, rpm);
+  //       L2.setVelocity(600, rpm);
+  //       L3.setVelocity(600, rpm);
+  //       R6.setVelocity(600, rpm);
+  //       R7.setVelocity(600, rpm);
+  //       R8.setVelocity(600, rpm);
+  //       Out.setVelocity(200, rpm);
+  //       Take.setVelocity(200, rpm);
+  //       outake.setVelocity(200, rpm);
+  //       RollerIntake.setVelocity(600, rpm);
+
+  //       RollerIntake.spin(forward);
+
+  //       break;
+  // //////////////////////////////////////////////////////////
+
+  //     case 1:
+  //             outake.setStopping(coast);
+  //       RollerIntake.setStopping(coast);
+
+  //       colorsort = task(Colorcontrols);
+  //       targetColor = vex::color::red;
+  //       Trap = true;
+  //       L1.setVelocity(600, rpm);
+  //       L2.setVelocity(600, rpm);
+  //       L3.setVelocity(600, rpm);
+  //       R6.setVelocity(600, rpm);
+  //       R7.setVelocity(600, rpm);
+  //       R8.setVelocity(600, rpm);
+  //       Out.setVelocity(200, rpm);
+  //       Take.setVelocity(200, rpm);
+  //       outake.setVelocity(200, rpm);
+  //       RollerIntake.setVelocity(600, rpm);
+
+  //       RollerIntake.spin(reverse);
+
+  //       break;
+  // ///////////////////////////////////////////////////////////
+
+  //     case 2:
+  //       outake.setStopping(coast);
+  //       RollerIntake.setStopping(coast);
+
+  //       colorsort = task(Colorcontrols);
+  //       targetColor = vex::color::red;
+  //       Trap = true;
+  //       L1.setVelocity(600, rpm);
+  //       L2.setVelocity(600, rpm);
+  //       L3.setVelocity(600, rpm);
+  //       R6.setVelocity(600, rpm);
+  //       R7.setVelocity(600, rpm);
+  //       R8.setVelocity(600, rpm);
+  //       Out.setVelocity(200, rpm);
+  //       Take.setVelocity(200, rpm);
+  //       outake.setVelocity(200, rpm);
+  //       RollerIntake.setVelocity(600, rpm);
+
+  //       outake.spin(forward);
+
+  //       break;
+
+  // //////////////////////////////////////////////////////
+  //     case 3:
+  //             outake.setStopping(coast);
+  //       RollerIntake.setStopping(coast);
+
+  //       colorsort = task(Colorcontrols);
+  //       targetColor = vex::color::red;
+  //       Trap = true;
+  //       L1.setVelocity(600, rpm);
+  //       L2.setVelocity(600, rpm);
+  //       L3.setVelocity(600, rpm);
+  //       R6.setVelocity(600, rpm);
+  //       R7.setVelocity(600, rpm);
+  //       R8.setVelocity(600, rpm);
+  //       Out.setVelocity(200, rpm);
+  //       Take.setVelocity(200, rpm);
+  //       outake.setVelocity(200, rpm);
+  //       RollerIntake.setVelocity(600, rpm);
+
+  //       outake.spin(reverse);
+
+  //       break;
+  //   }
+
+  //////////////right quals auton//////////
+  // RollerIntake.spin(forward);
+  // drive(18.5);
+  // drive(9);
+  // turn(243);
+  // drive(-15);
+  // outake.spin(forward);
+  // wait(0.8, sec);
+  // outake.stop();
+  // drive(50);
+
   // turn(195);
   // Loader.set(true);
   // Lifter.set(true);
@@ -414,9 +599,7 @@ void auton() // A function named "auton", in this case, any code in the brackets
   // drive(-22);
   // outake.spin(forward);
 
- 
   //////left side elims auton//////
-
 
   // RollerIntake.spin(forward);
   // drive(18.5);

@@ -8,13 +8,15 @@
 
 using namespace vex;
 
-const double wheelTrack = 14.5; // in inches (left-right distance)
+const double wheelTrack = 11.5; // in inches (left-right distance)
 
 // Motor groups
 
 // PID class values
 PID distPID(0.05, 0, 0.4);
 PID fastTurnPID(0.043, 0.0001, 0.39);
+PID arcPID(0.15, 0, 0);
+PID sweepPID(0.04, 0, 0.5);
 
 const double maxVelDefault = 45; // max linear speed in inches/sec
 const double accelDefault = 120; // acceleration in inches/sec^2
@@ -66,10 +68,10 @@ void stops()
 // Check volatage and apply minimum voltage if needed
 double minVolt(double v)
 {
-    if (v > -2.0 && v < 0)
-        return -2.0;
-    if (v > 0 && v < 2.0)
-        return 2.0;
+    if (v > -3.0 && v < 0)
+        return -3.0;
+    if (v > 0 && v < 3.0)
+        return 3.0;
     return v;
 }
 
@@ -164,78 +166,87 @@ void turn(double targetHeading)
     stops();
 }
 
-void arc(double radiusInches, double angleDeg, bool forward, bool right)
+
+void arc(double radiusInches, double angleDeg)
 {
-    distPID.reset();
+    arcPID.reset();
     double elapsedTime = 0;
     const double maxTime = 3000; // ms timeout
-    const double distExit = 0.5; // inches tolerance
-    const double angExit = 1.0;  // degrees tolerance
+    const double distTolerance = 0.5; // inches
+    const double angleTolerance = 1.0; // degrees
 
-    // Calculate arc length
-    double arcLength = 2.0 * M_PI * radiusInches * (fabs(angleDeg) / 360.0);
-    double targetDistance = arcLength;
+    // Determine arc direction from radius sign
+    bool arcLeft = (radiusInches > 0);
+
+    // Use absolute radius for calculations
+    double absRadius = fabs(radiusInches);
+
+    // Calculate arc length (always positive)
+    double arcLength = 2.0 * M_PI * absRadius * (fabs(angleDeg) / 360.0);
+
     // Starting pose
     Pose startPose = getPose();
-    double targetHeading = startPose.theta + (right ? angleDeg : -angleDeg);
 
-    // Normalize target heading to [0, 360)
-    if (targetHeading < 0)
-        targetHeading += 360.0;
-    if (targetHeading >= 360.0)
-        targetHeading -= 360.0;
+    // Calculate target heading and normalize to [-180, 180]
+    double targetHeading = startPose.theta + angleDeg;
+    while (targetHeading > 180) targetHeading -= 360;
+    while (targetHeading < -180) targetHeading += 360;
 
-    // Wheel ratio for arc
-    double turnRatio = (radiusInches - (wheelTrack / 2.0)) /
-                       (radiusInches + (wheelTrack / 2.0));
+    // Calculate wheel speed ratio
+    double innerRadius = absRadius - (wheelTrack / 2.0);
+    double outerRadius = absRadius + (wheelTrack / 2.0);
+    double speedRatio = innerRadius / outerRadius;
 
     while (true)
     {
         Pose pose = getPose();
-        // Distance traveled along the arc
-        double traveled = fabs(pose.ySensor - startPose.ySensor);
-        double remainingDist = targetDistance - traveled;
 
+        // Calculate traveled distance as Euclidean distance
+        double dx = pose.xSensor - startPose.xSensor;
+        double dy = pose.ySensor - startPose.ySensor;
+        double traveled = sqrt(dx*dx + dy*dy);
+
+        // Calculate heading error normalized to [-180, 180]
         double headingError = targetHeading - pose.theta;
-        if (headingError > 180)
-            headingError -= 360;
-        if (headingError < -180)
-            headingError += 360;
+        while (headingError > 180) headingError -= 360;
+        while (headingError < -180) headingError += 360;
 
         // Exit conditions
-        if ((fabs(remainingDist) <= distExit && fabs(headingError) <= angExit) ||
+        if ((fabs(traveled - arcLength) <= distTolerance && fabs(headingError) <= angleTolerance) ||
             elapsedTime >= maxTime)
             break;
 
-        // PID output for forward motion
-        double linearOut = distPID.compute(targetDistance, traveled);
-        linearOut = clamp(linearOut, -1.0, 1.0) * 12.0; // Convert to volts
+        // PID output for linear distance
+        double linearOut = arcPID.compute(arcLength, traveled);
+        linearOut *= 12.0; // convert to volts
 
-        // Apply forward/reverse factor
-        linearOut *= (forward ? 1.0 : -1.0);
+        // Determine direction (forward or reverse) from sign of angleDeg
+        linearOut *= (angleDeg >= 0) ? 1.0 : -1.0;
 
-        double leftOut = linearOut;
-        double rightOut = linearOut;
+        double leftVolt = linearOut;
+        double rightVolt = linearOut;
 
-        if (right) // Arc to the right
-            leftOut *= turnRatio;
-        else // Arc to the left
-            rightOut *= turnRatio;
+        // Adjust voltages based on arc direction
+        if (arcLeft)
+            rightVolt *= speedRatio;  // right wheel is inner wheel on left arc
+        else
+            leftVolt *= speedRatio;   // left wheel is inner wheel on right arc
 
-        setDrive(leftOut, rightOut);
+        setDrive(leftVolt, rightVolt);
 
         elapsedTime += 10;
         wait(10, msec);
     }
 
-    stop();
+    stops();
 }
 
-void Sweep(double targetAngleDeg, bool left, bool forward)
+
+void Sweep(double targetAngleDeg, bool left)
 {
-    fastTurnPID.reset();
+    sweepPID.reset();
     double elapsedTime = 0;
-    const double timeout = 1000; // ms timeout
+    const double timeout = 2000; // ms timeout
 
     while (true)
     {
@@ -243,36 +254,34 @@ void Sweep(double targetAngleDeg, bool left, bool forward)
         Pose pose = getPose();
         double heading = pose.theta;
         // PID output for turning
-        double turnOutput = fastTurnPID.compute(targetAngleDeg, heading, true);
+        double turnOutput = sweepPID.compute(targetAngleDeg, heading, true);
 
         double remaining = targetAngleDeg - heading;
+
+        if (remaining < -180)
+            remaining += 360;
+        if (remaining > 180)
+            remaining -= 360;
         // Exit conditions
         if (fabs(remaining) < 1.0 || elapsedTime >= timeout)
             break;
 
         // Clamp turn output and convert to volts
+
         turnOutput = clamp(turnOutput, -1.0, 1.0);
         double Volts = minVolt(turnOutput * 12.0);
 
-        // Apply forward/reverse factor
-        Volts *= (forward ? 1.0 : -1.0);
-
-        double leftvolt = 0;
-        double rightvolt = 0;
-
         // Set voltages based on turn direction
         if (left)
-            leftvolt = Volts;
+            setDrive(Volts,0);
         else
-            rightvolt = Volts;
-
-        setDrive(leftvolt, rightvolt);
+            setDrive(0, Volts);
 
         elapsedTime += 10;
         wait(10, msec);
     }
 
-    stop();
+    stops();
 }
 
 // Drive to a target (x,y) using odom, motion profiling, and PID

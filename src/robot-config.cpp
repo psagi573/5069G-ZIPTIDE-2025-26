@@ -12,7 +12,6 @@ controller Controller1 = controller(primary);
 controller Controller2 = controller(partner);
 motor L1 = motor(PORT12, ratio6_1, true);
 motor L2 = motor(PORT13, ratio6_1, true);
-motor daddy = motor(PORT5, ratio36_1, false);
 motor L3 = motor(PORT14, ratio6_1, true);
 motor R6 = motor(PORT18, ratio6_1, false);
 motor R7 = motor(PORT19, ratio6_1, false);

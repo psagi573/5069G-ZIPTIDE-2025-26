@@ -19,8 +19,8 @@ extern rotation *yRot;
 extern inertial *imuSensor;
 
 // Robot sensor offsets
-const double xOffset = 5.25;  // inches from center to X (lateral) tracker 0 inches
-const double yOffset = 0.75; // inches from center to Y (longitudinal) tracker 1.9 inches
+const double xOffset = 5.25;  // inches from center to X (lateral) tracker 0 inches    5.25
+const double yOffset = -0.75; // inches from center to Y (longitudinal) tracker 1.9 inches    0.75
 
 // Wheel settings
 const double odomWheelDiameter = 2.0;
@@ -47,15 +47,14 @@ int odomTask()
         double currYInches = currYTurns * wheelCircumference;
 
         // 3. Calculate raw deltas in robot-local coordinates
-        double deltaX = currXInches - prevX;
-        double deltaY = currYInches - prevY;
+        double deltaY = currXInches - prevX;
+        double deltaX = currYInches - prevY;
 
+        //deltaY = -deltaY;
         // 4. Calculate heading delta and wrap to [-π, π]
         double deltaTheta = thetaRad - prevThetaRad;
-        if (deltaTheta > M_PI)
-            deltaTheta -= 2.0 * M_PI;
-        if (deltaTheta < -M_PI)
-            deltaTheta += 2.0 * M_PI;
+        if (deltaTheta > M_PI) deltaTheta -= 2.0 * M_PI;
+        if (deltaTheta < -M_PI) deltaTheta += 2.0 * M_PI;
 
         // 5. Compute local displacement with arc correction (Purdue method)
         double localX = 0.0, localY = 0.0;
@@ -87,10 +86,8 @@ int odomTask()
             currentPose.x += deltaXGlobal;
             currentPose.y += deltaYGlobal;
 
-            double cleanTheta = fmod(thetaDeg, 360.0);
-            if (cleanTheta < 0.0)
-                cleanTheta += 360.0;
-            currentPose.theta = cleanTheta;
+            currentPose.theta = fmod(thetaDeg + 360.0, 360.0);
+
         }
 
         // 8. Store current readings for next iteration
@@ -164,8 +161,8 @@ Pose getPose()
 {
     Pose poseCopy;
     // Copy the struct fields (atomic on simple doubles generally safe)
-    poseCopy.x = currentPose.x;
-    poseCopy.y = currentPose.y;
+    poseCopy.x = currentPose.y;
+    poseCopy.y = currentPose.x;
     poseCopy.theta = currentPose.theta;
     poseCopy.ySensor = yRot->position(turns) * wheelCircumference;
     poseCopy.xSensor = xRot->position(turns) * wheelCircumference;
