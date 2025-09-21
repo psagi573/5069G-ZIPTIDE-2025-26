@@ -15,14 +15,18 @@ const double wheelTrack = 11.5; // in inches (left-right distance)
 // PID class values
 PID distPID(0.05, 0, 0.4);
 PID fastTurnPID(0.043, 0.0001, 0.39);
+
 PID arcPID(0.15, 0, 0);
 PID sweepPID(0.04, 0, 0.5);
 
-const double maxVelDefault = 45; // max linear speed in inches/sec
-const double accelDefault = 120; // acceleration in inches/sec^2
+PID drivePID(0.07, 0, 0.9);
+PID headingPID(0, 0, 0);
 
-const double maxVelshort = 45; // max linear speed in inches/sec
-const double accelshort = 120; // acceleration in inches/sec^2
+const double maxVelDefault = 60; // max linear speed in inches/sec
+const double accelDefault = 30;  // acceleration in inches/sec^2
+
+const double maxVelshort = 60; // max linear speed in inches/sec
+const double accelshort = 20;  // acceleration in inches/sec^2
 
 // Set left and right motor voltages
 void setDrive(double left, double right)
@@ -52,7 +56,6 @@ void stop()
     R7.stop(coast);
     R8.stop(coast);
 }
-
 
 void stops()
 {
@@ -95,7 +98,8 @@ void drive(double distInches)
         double dx = pose.x - startX;
         double dy = pose.y - startY;
         double traveled = sqrt(dx * dx + dy * dy);
-        if (distInches < 0){
+        if (distInches < 0)
+        {
             traveled = -traveled;
         }
         double error = target - traveled;
@@ -103,7 +107,7 @@ void drive(double distInches)
         // Compute linear output (PID)
         double linearOut = distPID.compute(target, traveled);
         // Clamp linearOut to [-1,+1]
-        //linearOut = clamp(linearOut, -1.0, 1.0);
+        // linearOut = clamp(linearOut, -1.0, 1.0);
 
         // Scale to volts
         linearOut = linearOut * 12.0;
@@ -166,17 +170,16 @@ void turn(double targetHeading)
     stops();
 }
 
-
 void arc(double radiusInches, double angleDeg)
 {
     arcPID.reset();
     double elapsedTime = 0;
-    const double maxTime = 3000; // ms timeout
-    const double distTolerance = 0.5; // inches
+    const double maxTime = 3000;       // ms timeout
+    const double distTolerance = 0.5;  // inches
     const double angleTolerance = 1.0; // degrees
 
     // Determine arc direction from radius sign
-    bool arcLeft = (radiusInches > 0);
+    bool arcLeft = (radiusInches < 0);
 
     // Use absolute radius for calculations
     double absRadius = fabs(radiusInches);
@@ -189,8 +192,10 @@ void arc(double radiusInches, double angleDeg)
 
     // Calculate target heading and normalize to [-180, 180]
     double targetHeading = startPose.theta + angleDeg;
-    while (targetHeading > 180) targetHeading -= 360;
-    while (targetHeading < -180) targetHeading += 360;
+    while (targetHeading > 180)
+        targetHeading -= 360;
+    while (targetHeading < -180)
+        targetHeading += 360;
 
     // Calculate wheel speed ratio
     double innerRadius = absRadius - (wheelTrack / 2.0);
@@ -202,14 +207,17 @@ void arc(double radiusInches, double angleDeg)
         Pose pose = getPose();
 
         // Calculate traveled distance as Euclidean distance
-        double dx = pose.xSensor - startPose.xSensor;
-        double dy = pose.ySensor - startPose.ySensor;
-        double traveled = sqrt(dx*dx + dy*dy);
+        double dx = pose.x - startPose.x;
+        double dy = pose.y - startPose.y;
+        double traveled = sqrt(dx * dx + dy * dy);
 
+        traveled = traveled / 2;
         // Calculate heading error normalized to [-180, 180]
         double headingError = targetHeading - pose.theta;
-        while (headingError > 180) headingError -= 360;
-        while (headingError < -180) headingError += 360;
+        while (headingError > 180)
+            headingError -= 360;
+        while (headingError < -180)
+            headingError += 360;
 
         // Exit conditions
         if ((fabs(traveled - arcLength) <= distTolerance && fabs(headingError) <= angleTolerance) ||
@@ -227,10 +235,10 @@ void arc(double radiusInches, double angleDeg)
         double rightVolt = linearOut;
 
         // Adjust voltages based on arc direction
-        if (arcLeft)
-            rightVolt *= speedRatio;  // right wheel is inner wheel on left arc
+        if (!arcLeft)
+            rightVolt *= speedRatio; // right wheel is inner wheel on left arc
         else
-            leftVolt *= speedRatio;   // left wheel is inner wheel on right arc
+            leftVolt *= speedRatio; // left wheel is inner wheel on right arc
 
         setDrive(leftVolt, rightVolt);
 
@@ -240,7 +248,6 @@ void arc(double radiusInches, double angleDeg)
 
     stops();
 }
-
 
 void Sweep(double targetAngleDeg, bool left)
 {
@@ -273,7 +280,7 @@ void Sweep(double targetAngleDeg, bool left)
 
         // Set voltages based on turn direction
         if (left)
-            setDrive(Volts,0);
+            setDrive(Volts, 0);
         else
             setDrive(0, Volts);
 
@@ -287,18 +294,15 @@ void Sweep(double targetAngleDeg, bool left)
 // Drive to a target (x,y) using odom, motion profiling, and PID
 void driveTo(double targetX, double targetY)
 {
-    distPID.reset();
-    fastTurnPID.reset();
+    drivePID.reset();
+    headingPID.reset();
 
     Pose start = getPose();
     double dx = targetX - start.x;
     double dy = targetY - start.y;
     double distance = sqrt(dx * dx + dy * dy);
 
-    // Initialize motion profile (short vs long move scaling)
-    double maxVel = (distance < 10) ? maxVelshort : maxVelDefault;
-    double accel = (distance < 10) ? accelshort : accelDefault;
-    Profile profile(maxVel, accel);
+    double targetHeading = atan2(dy, dx) * 180.0 / M_PI;
 
     double traveled = 0;
     double lastRemaining = distance;
@@ -309,7 +313,7 @@ void driveTo(double targetX, double targetY)
     {
         Pose pose = getPose();
 
-        // --- Distance calculations ---
+        // Distance traveled from start
         double dxt = pose.x - start.x;
         double dyt = pose.y - start.y;
         traveled = sqrt(dxt * dxt + dyt * dyt);
@@ -317,49 +321,28 @@ void driveTo(double targetX, double targetY)
         double remaining = distance - traveled;
         double direction = (remaining >= 0) ? 1.0 : -1.0;
 
+        // Heading error normalized to [-180, 180]
+        double headingError = targetHeading - pose.theta;
+        while (headingError > 180)
+            headingError -= 360;
+        while (headingError < -180)
+            headingError += 360;
 
-        // --- Dynamic exit condition ---
-        bool closeEnough = fabs(remaining) < 0.5;
-        bool nearlyStopped = fabs(remaining - lastRemaining) < 0.05;
-        if ((closeEnough && nearlyStopped) || elapsed > timeout)
+        // Exit condition
+
+        if ((fabs(remaining - lastRemaining) < 0.05 && fabs(remaining) < 0.5) || elapsed > timeout)
             break;
-        
-        // // --- Heading calculations ---
-        // double angleToTarget = atan2(targetY - pose.y, targetX - pose.x) * (180.0 / M_PI);
-        // if (angleToTarget < 0)
-        //     angleToTarget += 360.0;
 
-        // double headingError = angleToTarget - pose.theta;
-        // if (headingError > 180)
-        //     headingError -= 360;
-        // if (headingError < -180)
-        //     headingError += 360;
+        // Feedback PID for distance
+        double driveOutput = drivePID.compute(distance, traveled);
 
-        // --- Feedforward (motion profile) ---
-        double ffVel = profile.getTargetVelocity(fabs(remaining), traveled, direction);
+        // Heading correction (simple P controller)
+        double turnCorrection = headingPID.compute(targetHeading, pose.theta, true);
+        // You can tune headingPID gains for smooth correction
 
-        // --- Feedback (PID) ---
-        double pidCorrection = distPID.compute(distance, traveled);
-        pidCorrection *= maxVelDefault; // scale to velocity domain
-
-        // --- Combine feedforward + feedback ---
-        double commandedVel = ffVel + pidCorrection;
-        commandedVel = clamp(commandedVel, -maxVelDefault, maxVelDefault);
-
-        // --- Turn blending (soft heading correction) ---
-        // double turnOut = 0.0;
-        // if (fabs(headingError) > 2.0)
-        // { // ignore tiny noise
-        //     turnOut = fastTurnPID.compute(headingError, 0);
-        //     // scale softly so it doesn’t fight drive
-        //     double blend = 0.15 + 0.1 * (1.0 - fabs(commandedVel) / maxVelDefault);
-        //     turnOut = clamp(turnOut * blend, -0.15, 0.15); // volts fraction
-        // }
-
-        // --- Convert velocity (in/s) to volts ---
-        double linearVolts = (commandedVel / maxVelDefault) * 12.0;
-        double leftVolt = linearVolts * 12.0;
-        double rightVolt = linearVolts * 12.0;
+        // Convert velocities to voltages
+        double leftVolt = (driveOutput - turnCorrection) * 12.0;
+        double rightVolt = (driveOutput + turnCorrection) * 12.0;
 
         setDrive(leftVolt, rightVolt);
 
@@ -368,5 +351,5 @@ void driveTo(double targetX, double targetY)
         wait(10, msec);
     }
 
-    stop();
+    stops();
 }

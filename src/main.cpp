@@ -480,7 +480,7 @@ void auton() // A function named "auton", in this case, any code in the brackets
   RollerIntake.setVelocity(600, rpm);
 
 
-  RollerIntake.spin(forward);
+  driveTo(0, 24);
 
   //   switch (autonSelected) {
   //     case 0:
@@ -638,6 +638,7 @@ int main()
     // Get raw encoder values
     double xEnc = Xaxis.position(turns);
     double yEnc = Yaxis.position(turns);
+
     double heading = inertial19.rotation();
 
     // Get computed position from your odometry
@@ -648,6 +649,7 @@ int main()
     Brain.Screen.print("X Encoder: %.2f", xEnc);
     Brain.Screen.setCursor(2, 1);
     Brain.Screen.print("Y Encoder: %.2f", yEnc);
+    Brain.Screen.print("Y inch: %.2f", yEnc*2);
     Brain.Screen.setCursor(3, 1);
     Brain.Screen.print("Heading: %.2f", heading);
     Brain.Screen.setCursor(4, 1);
