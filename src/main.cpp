@@ -480,7 +480,8 @@ void auton() // A function named "auton", in this case, any code in the brackets
   RollerIntake.setVelocity(600, rpm);
 
 
-  driveTo(0, 24);
+  driveTo(0, 48);
+  RollerIntake.spin(forward);
 
   //   switch (autonSelected) {
   //     case 0:

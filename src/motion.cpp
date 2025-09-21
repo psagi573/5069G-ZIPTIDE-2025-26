@@ -19,8 +19,8 @@ PID fastTurnPID(0.043, 0.0001, 0.39);
 PID arcPID(0.15, 0, 0);
 PID sweepPID(0.04, 0, 0.5);
 
-PID drivePID(0.07, 0, 0.9);
-PID headingPID(0, 0, 0);
+PID drivePID(0.04, 0, 0.2);
+PID headingPID(0.01, 0, 0);
 
 const double maxVelDefault = 60; // max linear speed in inches/sec
 const double accelDefault = 30;  // acceleration in inches/sec^2
@@ -304,10 +304,16 @@ void driveTo(double targetX, double targetY)
 
     double targetHeading = atan2(dy, dx) * 180.0 / M_PI;
 
+    if (targetHeading < 0)
+        targetHeading += 360;
+
     double traveled = 0;
     double lastRemaining = distance;
     int elapsed = 0;
-    const int timeout = 4000; // safety timeout
+    const int timeout = 2000; // safety timeout
+
+    double lastTurnCorrection = 0;
+    const double alpha = 0.1; // smoothing factor
 
     while (true)
     {
@@ -330,7 +336,7 @@ void driveTo(double targetX, double targetY)
 
         // Exit condition
 
-        if ((fabs(remaining - lastRemaining) < 0.05 && fabs(remaining) < 0.5) || elapsed > timeout)
+        if ((fabs(remaining - lastRemaining) < 0.05 && fabs(remaining) < 0.5) && fabs(headingError) < 1 || elapsed > timeout)
             break;
 
         // Feedback PID for distance
@@ -338,11 +344,30 @@ void driveTo(double targetX, double targetY)
 
         // Heading correction (simple P controller)
         double turnCorrection = headingPID.compute(targetHeading, pose.theta, true);
-        // You can tune headingPID gains for smooth correction
+
+        // Scale down turn correction to reduce influence
+        turnCorrection *= 0.2;
+
+        // Clamp max turn correction to prevent sudden large turns
+        const double maxTurnCorrection = 0.3;
+        if (turnCorrection > maxTurnCorrection)
+            turnCorrection = maxTurnCorrection;
+        else if (turnCorrection < -maxTurnCorrection)
+            turnCorrection = -maxTurnCorrection;
+
+        // Smooth turn correction using exponential moving average
+        turnCorrection = alpha * turnCorrection + (1 - alpha) * lastTurnCorrection;
+        lastTurnCorrection = turnCorrection;
+
+        if (fabs(headingError) < 2.0 || fabs(remaining) < 5.0)
+            turnCorrection = 0;
 
         // Convert velocities to voltages
         double leftVolt = (driveOutput - turnCorrection) * 12.0;
         double rightVolt = (driveOutput + turnCorrection) * 12.0;
+
+        leftVolt = minVolt(leftVolt);
+        rightVolt = minVolt(rightVolt);
 
         setDrive(leftVolt, rightVolt);
 
