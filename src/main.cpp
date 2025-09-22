@@ -480,8 +480,55 @@ void auton() // A function named "auton", in this case, any code in the brackets
   RollerIntake.setVelocity(600, rpm);
 
 
-  driveTo(0, 48);
   RollerIntake.spin(forward);
+  drive(27);
+  //drive(8);
+  wait(0.2, sec);
+  turn(245);
+  wait(0.2, sec);
+  drive(-12);
+  outake.spin(forward);
+  wait(1.3, sec);
+  outake.stop();
+  drive(47);
+  turn(200);
+  Loader.set(true);
+  Lifter.set(true);
+  wait(0.2, sec);
+  drive(13);
+  wait(0.2, sec);
+  drive(-30);
+  outake.spin(forward);
+
+
+
+//////////////////////////////////////////////////////////////////
+
+
+//good elims left auton
+  // Brain.Timer.reset();
+  // RollerIntake.spin(forward);
+  // drive(19);
+  // drive(7.5);
+  // turn(240);
+  // drive(38.5);
+  // turn(195);
+  // Loader.set(true);
+  // Lifter.set(true);
+  // wait(0.2, sec);
+  // drive(13);
+  // wait(0.2, sec);
+  // turn(200);
+  // drive(-30);
+  // outake.spin(forward);
+
+
+
+
+
+  /////////////////////////////////////////////////////////////////////////
+  // Brain.Screen.setCursor(7, 1);
+  // Brain.Screen.print("Time: %f", Brain.Timer.time(sec));
 
   //   switch (autonSelected) {
   //     case 0:

@@ -13,14 +13,14 @@ const double wheelTrack = 11.5; // in inches (left-right distance)
 // Motor groups
 
 // PID class values
-PID distPID(0.05, 0, 0.4);
+PID distPID(0.05, 0, 0.6);
 PID fastTurnPID(0.043, 0.0001, 0.39);
 
 PID arcPID(0.15, 0, 0);
 PID sweepPID(0.04, 0, 0.5);
 
-PID drivePID(0.04, 0, 0.2);
-PID headingPID(0.01, 0, 0);
+PID drivePID(0.05, 0, 0.8);
+PID headingPID(0, 0, 0);
 
 const double maxVelDefault = 60; // max linear speed in inches/sec
 const double accelDefault = 30;  // acceleration in inches/sec^2
@@ -71,10 +71,10 @@ void stops()
 // Check volatage and apply minimum voltage if needed
 double minVolt(double v)
 {
-    if (v > -3.0 && v < 0)
-        return -3.0;
-    if (v > 0 && v < 3.0)
-        return 3.0;
+    if (v > -2.0 && v < 0)
+        return -2.0;
+    if (v > 0 && v < 2.0)
+        return 2.0;
     return v;
 }
 
@@ -82,6 +82,7 @@ void drive(double distInches)
 {
     distPID.reset();
 
+    //distInches = distInches-2; //compensate for overshoot
     // Define starting postion
     double startX = getPose().x;
     double startY = getPose().y;
@@ -301,6 +302,7 @@ void driveTo(double targetX, double targetY)
     double dx = targetX - start.x;
     double dy = targetY - start.y;
     double distance = sqrt(dx * dx + dy * dy);
+    distance = distance - 2;
 
     double targetHeading = atan2(dy, dx) * 180.0 / M_PI;
 
@@ -336,7 +338,7 @@ void driveTo(double targetX, double targetY)
 
         // Exit condition
 
-        if ((fabs(remaining - lastRemaining) < 0.05 && fabs(remaining) < 0.5) && fabs(headingError) < 1 || elapsed > timeout)
+        if ((fabs(remaining - lastRemaining) < 0.05 && fabs(remaining) < 0.5)|| elapsed > timeout)
             break;
 
         // Feedback PID for distance
@@ -362,9 +364,10 @@ void driveTo(double targetX, double targetY)
         if (fabs(headingError) < 2.0 || fabs(remaining) < 5.0)
             turnCorrection = 0;
 
+        driveOutput = clamp(driveOutput, -1.0, 1.0);
         // Convert velocities to voltages
-        double leftVolt = (driveOutput - turnCorrection) * 12.0;
-        double rightVolt = (driveOutput + turnCorrection) * 12.0;
+        double leftVolt = (driveOutput - 0) * 12.0;
+        double rightVolt = (driveOutput + 0) * 12.0;
 
         leftVolt = minVolt(leftVolt);
         rightVolt = minVolt(rightVolt);
