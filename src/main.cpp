@@ -398,7 +398,7 @@ void autonSelector()
 void pre_auton(void)
 {
   vexcodeInit();
-  //autonSelector();
+  // autonSelector();
   inertial19.calibrate();
   while (inertial19.isCalibrating())
   {
@@ -428,8 +428,9 @@ int Colorcontrols()
       // Check if the color matches
       if (Color.color() == targetColor)
       {
-        Trapdoor.set(true); // open trapdoor
+        Trapdoor.set(true);  // open trapdoor
         task::sleep(1000);   // wait 1000 milliseconds
+        Trapdoor.set(false); // close trapdoor
       }
       else
       {
@@ -465,6 +466,9 @@ void auton() // A function named "auton", in this case, any code in the brackets
   outake.setStopping(coast);
   RollerIntake.setStopping(coast);
 
+  timer autonTimer;
+  autonTimer.reset();
+
   colorsort = task(Colorcontrols);
   targetColor = vex::color::blue;
   Trap = true;
@@ -479,53 +483,51 @@ void auton() // A function named "auton", in this case, any code in the brackets
   outake.setVelocity(200, rpm);
   RollerIntake.setVelocity(600, rpm);
 
+  ///////////////////////////////////////////////////////////////////////
+  ////LEFT QUALS AUTON//////////
 
-  RollerIntake.spin(forward);
-  drive(27);
-  //drive(8);
-  wait(0.2, sec);
-  turn(245);
-  wait(0.2, sec);
-  drive(-12);
-  outake.spin(forward);
-  wait(1.3, sec);
-  outake.stop();
-  drive(47);
-  turn(200);
-  Loader.set(true);
-  Lifter.set(true);
-  wait(0.2, sec);
-  drive(13);
-  wait(0.2, sec);
-  drive(-30);
-  outake.spin(forward);
-
-
-
-//////////////////////////////////////////////////////////////////
-
-
-//good elims left auton
-  // Brain.Timer.reset();
   // RollerIntake.spin(forward);
-  // drive(19);
-  // drive(7.5);
-  // turn(240);
-  // drive(38.5);
-  // turn(195);
+  // drive(27);
+  // //drive(8);
+  // wait(0.2, sec);
+  // turn(245);
+  // wait(0.2, sec);
+  // drive(-12);
+  // outake.spin(forward);
+  // wait(1.3, sec);
+  // outake.stop();
+  // drive(47);
+  // turn(200);
   // Loader.set(true);
   // Lifter.set(true);
   // wait(0.2, sec);
   // drive(13);
   // wait(0.2, sec);
-  // turn(200);
   // drive(-30);
   // outake.spin(forward);
 
+  //////////////////////////////////////////////////////////////////
 
+  // good elims left auton
+  Brain.Timer.reset();
+  RollerIntake.spin(forward);
+  drive(19);
+  drive(7.5);
+  turn(240);
+  drive(37.5);
+  Loader.set(true);
+  Lifter.set(true);
+  wait(0.3, sec);
+  turn(195);
+  drive(13);
+  drive(-5);
+  turn(205);
+  drive(-25);
+  outake.spin(forward);
 
-
-
+  double elapsedTime = autonTimer.time(timeUnits::msec);
+  Brain.Screen.setCursor(8, 1);
+  Brain.Screen.print("Auton Time: %.2f seconds", elapsedTime);
   /////////////////////////////////////////////////////////////////////////
   // Brain.Screen.setCursor(7, 1);
   // Brain.Screen.print("Time: %f", Brain.Timer.time(sec));
@@ -697,7 +699,7 @@ int main()
     Brain.Screen.print("X Encoder: %.2f", xEnc);
     Brain.Screen.setCursor(2, 1);
     Brain.Screen.print("Y Encoder: %.2f", yEnc);
-    Brain.Screen.print("Y inch: %.2f", yEnc*2);
+    Brain.Screen.print("Y inch: %.2f", yEnc * 2);
     Brain.Screen.setCursor(3, 1);
     Brain.Screen.print("Heading: %.2f", heading);
     Brain.Screen.setCursor(4, 1);
