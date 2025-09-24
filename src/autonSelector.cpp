@@ -1,199 +1,113 @@
+#include "autonSelector.h"
 #include "vex.h"
-#include "odom.h"
-#include "autonselector.h"
-#include "autons.h"
-#include <string>
-#include <cmath>
 
 using namespace vex;
 
-// -------------------------
-// Configuration
-// -------------------------
-rotation *xRot;
-rotation *yRot;
-inertial *imuSensor;
+AutonSelector::AutonSelector() {
+    currentAutonIndex = 0;
+    selecting = true;
+    confirmed = false;
+}
 
-// Replace these with your converted .c images
-extern const char *pathRightImage;
-extern const char *pathLeftImage;
-extern const char *ziptideLogo;
-std::string autonRoutine;
-// -------------------------
-// Auton Definition
-// -------------------------
+void AutonSelector::addAuton(const char* name, void (*autonFunction)()) {
+    autonOptions.push_back({name, autonFunction});
+}
 
-
-Auton autons[] = {
-    {"Red Left", 20, 10.0, 10.0, 10.0},
-    {"Red Right", 15, 20.0, 20.0, 20.0},
-    // Add more autons here
-};
-const int AUTON_COUNT = sizeof(autons) / sizeof(Auton);
-int selectedAuton = 0;
-
-
-void runAuton()
-{
-    if (autonRoutine == "Red Left")
-    {
-        redLeftAuton();
-    }
-    else if (autonRoutine == "Red Right")
-    {
-        redRightAuton();
+void AutonSelector::displayAutonSelection() {
+    Controller1.Screen.clearScreen();
+    
+    if (!confirmed) {
+        // Main selection screen
+        Controller1.Screen.setCursor(1, 1);
+        Controller1.Screen.print("A: Select  B: Back");
+        
+        Controller1.Screen.setCursor(2, 1);
+        Controller1.Screen.print("L1/R1: Navigate");
+        
+        Controller1.Screen.setCursor(3, 1);
+        Controller1.Screen.print("-> %s", autonOptions[currentAutonIndex].name);
+    } else {
+        // Confirmation screen
+        Controller1.Screen.setCursor(1, 1);
+        Controller1.Screen.print("SELECTED AUTON:");
+        
+        Controller1.Screen.setCursor(2, 1);
+        Controller1.Screen.print("%s", autonOptions[currentAutonIndex].name);
+        
+        Controller1.Screen.setCursor(3, 1);
+        Controller1.Screen.print("A: Confirm  B: Back");
     }
 }
-// -------------------------
-// Selector States
-// -------------------------
-enum SelectorState
-{
-    AUTON_SELECT,
-    CALIBRATE,
-    CALIBRATING,
-    READY
-};
-SelectorState state = AUTON_SELECT;
 
-// -------------------------
-// Display Functions
-// -------------------------
-void displayAutonSelection()
-{
-    Brain.Screen.clearScreen();
-    Brain.Screen.setFont(vex::mono20);
-    Brain.Screen.printAt(10, 20, autons[selectedAuton].name.c_str());
-    Brain.Screen.printAt(10, 50, "Points: %d", autons[selectedAuton].points);
-    // Brain.Screen.drawImage(10, 80, autons[selectedAuton].pathImage);
-
-    Controller1.Screen.clearScreen();
-    Controller1.Screen.setCursor(1, 1);
-    Controller1.Screen.print(autons[selectedAuton].name.c_str());
-}
-
-void displayCalibrationScreen()
-{
-    Brain.Screen.setFillColor(green);
-    Brain.Screen.clearScreen();
-    Brain.Screen.setFont(vex::mono20);
-    Brain.Screen.printAt(20, 50, "CALIBRATE");
-
-    Controller1.Screen.clearScreen();
-    Controller1.Screen.setCursor(1, 1);
-    Controller1.Screen.print("CALIBRATE");
-}
-
-void displayCalibrating()
-{
-    Brain.Screen.clearScreen();
-    Brain.Screen.setFillColor(green);
-    Brain.Screen.printAt(20, 50, "CALIBRATING...");
-
-    Controller1.Screen.clearScreen();
-    Controller1.Screen.setCursor(1, 1);
-    Controller1.Screen.print("CALIBRATING...");
-}
-
-
-void displayReady()
-{
-    Brain.Screen.clearScreen();
-    Controller1.Screen.clearScreen();
-}
-
-
-
-// -------------------------
-// Calibration
-// -------------------------
-void startCalibration()
-{
-    state = CALIBRATING;
-    displayCalibrating();
-
-    // Calibrate IMU
-    inertial19.calibrate();
-    while (inertial19.isCalibrating())
-        wait(50, msec);
-
-    // Start odometry at selected auton start position
-
-    // Rumble controller
-    Controller1.rumble("..");
-
-    state = READY;
-}
-
-// -------------------------
-// Selector Loop
-// -------------------------
-void autonSelectorLoop()
-{
-    displayAutonSelection();
-
-    while (true)
-    {
-        // Navigate autons
-        if (Controller1.ButtonLeft.pressing() && state == AUTON_SELECT)
-        {
-            selectedAuton = (selectedAuton - 1 + AUTON_COUNT) % AUTON_COUNT;
-            displayAutonSelection();
-            wait(200, msec);
-        }
-        if (Controller1.ButtonRight.pressing() && state == AUTON_SELECT)
-        {
-            selectedAuton = (selectedAuton + 1) % AUTON_COUNT;
-            displayAutonSelection();
-            wait(200, msec);
-        }
-
-        // Confirm / Calibrate
-        if (Controller1.ButtonA.pressing())
-        {
-            if (state == AUTON_SELECT)
-            {
-                state = CALIBRATE;
-                displayCalibrationScreen();
+void AutonSelector::runSelection() {
+    selecting = true;
+    confirmed = false;
+    
+    while (selecting) {
+        // Display current selection
+        displayAutonSelection();
+        
+        // Wait for controller input
+        while (true) {
+            if (!confirmed) {
+                // Main selection mode
+                if (Controller1.ButtonL1.pressing()) {
+                    // Move to previous auton
+                    currentAutonIndex--;
+                    if (currentAutonIndex < 0) {
+                        currentAutonIndex = autonOptions.size() - 1;
+                    }
+                    displayAutonSelection();
+                    wait(200, msec); // Debounce
+                }
+                else if (Controller1.ButtonR1.pressing()) {
+                    // Move to next auton
+                    currentAutonIndex++;
+                    if (currentAutonIndex >= autonOptions.size()) {
+                        currentAutonIndex = 0;
+                    }
+                    displayAutonSelection();
+                    wait(200, msec); // Debounce
+                }
+                else if (Controller1.ButtonA.pressing()) {
+                    // Enter confirmation screen
+                    confirmed = true;
+                    displayAutonSelection();
+                    wait(200, msec);
+                    break;
+                }
+            } else {
+                // Confirmation screen mode
+                if (Controller1.ButtonA.pressing()) {
+                    // Final confirmation - exit selection
+                    selecting = false;
+                    wait(200, msec);
+                    break;
+                }
+                else if (Controller1.ButtonB.pressing()) {
+                    // Go back to selection
+                    confirmed = false;
+                    displayAutonSelection();
+                    wait(200, msec);
+                    break;
+                }
             }
-            else if (state == CALIBRATE)
-            {
-                startCalibration();
-            }
+            
+            // Small delay to prevent CPU overload
+            wait(20, msec);
         }
-
-        // Cancel calibration back to selection
-        if (Controller1.ButtonB.pressing() && state == CALIBRATE)
-        {
-            state = AUTON_SELECT;
-            displayAutonSelection();
-        }
-
-        // Update live pose if ready
-        if (state == READY)
-        {
-            displayReady();
-            autonRoutine = autons[selectedAuton].name;
-        }
-
-        wait(50, msec);
     }
+    
+    // Display final selection
+    Controller1.Screen.clearScreen();
+    Controller1.Screen.setCursor(1, 1);
+    Controller1.Screen.print("Auton Ready:");
+    Controller1.Screen.setCursor(2, 1);
+    Controller1.Screen.print("%s", autonOptions[currentAutonIndex].name);
 }
 
-// -------------------------
-// Initialization
-// -------------------------
-// void PRSPro(rotation &xSensor, rotation &ySensor, inertial &imu)
-// {
-//     xRot = &xSensor;
-//     yRot = &ySensor;
-//     imuSensor = &imu;
-
-//     startOdomAt(*xRot, *yRot, *imuSensor,
-//                 autons[selectedAuton].startX,
-//                 autons[selectedAuton].startY,
-//                 autons[selectedAuton].startTheta);
-
-//     // Start the selector loop
-//     autonSelectorLoop();
-// }
+void AutonSelector::executeSelectedAuton() {
+    if (autonOptions.size() > 0 && currentAutonIndex < autonOptions.size()) {
+        autonOptions[currentAutonIndex].autonFunction();
+    }
+}

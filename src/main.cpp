@@ -35,8 +35,8 @@
 #include "PID.h"
 #include "odom.h"
 #include "motion.h"
-#include "autonSelector.h"
 #include "profile.h"
+#include "autonSelector.h"
 #include "autons.h"
 #include <string>
 
@@ -291,6 +291,7 @@ int Colorsortcontrols()
   }
 }
 task colorsort;
+task jamtask;
 void usercontrol() // A function named "usercontrol", in this case, any code in the brackets will run once (unless in a loop) when its driver control
 {
   colorsort.stop();
@@ -302,110 +303,9 @@ void usercontrol() // A function named "usercontrol", in this case, any code in 
   task f(Intake2Controls);
   task g(LoaderControls);
   task h(Colorsortcontrols);
+  task i(jamtask);
 }
 
-int autonSelected = 0;
-bool autonConfirmed = false;
-
-// List of auton names
-const char *autonNames[4] = {
-    "Left Rush",
-    "Right Rush",
-    "Skills",
-    "Safe Mid"};
-
-void updateScreens()
-{
-  // Clear and redraw Brain
-  Brain.Screen.clearScreen();
-  Brain.Screen.setCursor(1, 1);
-  if (!autonConfirmed)
-  {
-    Brain.Screen.print("Select Auton: %s", autonNames[autonSelected]);
-  }
-  else
-  {
-    Brain.Screen.print("Confirmed: %s", autonNames[autonSelected]);
-  }
-
-  // Clear and redraw Controller
-  Controller1.Screen.clearScreen();
-  Controller1.Screen.setCursor(0, 0);
-  if (!autonConfirmed)
-  {
-    Controller1.Screen.print("Auton: %s", autonNames[autonSelected]);
-  }
-  else
-  {
-    Controller1.Screen.print("Confirmed: %s", autonNames[autonSelected]);
-  }
-}
-
-void autonSelector()
-{
-  // Initial draw
-  updateScreens();
-
-  while (!autonConfirmed)
-  {
-    if (Controller1.ButtonR1.pressing())
-    {
-      autonSelected = (autonSelected + 1) % 4; // cycle forward
-      updateScreens();
-      wait(300, msec); // debounce
-    }
-    if (Controller1.ButtonL1.pressing())
-    {
-      autonSelected = (autonSelected - 1 + 4) % 4; // cycle backward
-      updateScreens();
-      wait(300, msec); // debounce
-    }
-    if (Controller1.ButtonA.pressing())
-    {
-      // First press shows confirm message
-      Brain.Screen.clearScreen();
-      Brain.Screen.setCursor(1, 1);
-      Brain.Screen.print("Confirm: %s", autonNames[autonSelected]);
-
-      Controller1.Screen.clearScreen();
-      Controller1.Screen.setCursor(0, 0);
-      Controller1.Screen.print("Confirm: %s", autonNames[autonSelected]);
-
-      // Wait for release
-      while (Controller1.ButtonA.pressing())
-      {
-        wait(20, msec);
-      }
-      // Wait for second press
-      while (!Controller1.ButtonA.pressing())
-      {
-        wait(20, msec);
-      }
-      while (Controller1.ButtonA.pressing())
-      {
-        wait(20, msec);
-      }
-
-      autonConfirmed = true;
-      Brain.Screen.clearScreen(); // clear after confirm
-      Controller1.Screen.clearScreen();
-      break;
-    }
-    wait(20, msec);
-  }
-}
-
-void pre_auton(void)
-{
-  vexcodeInit();
-  // autonSelector();
-  inertial19.calibrate();
-  while (inertial19.isCalibrating())
-  {
-    wait(50, msec);
-  }
-  // autonSelectorLoop();
-}
 
 bool Trap = false;                        // whether to enable sorting
 vex::color targetColor = vex::color::red; // set target color
@@ -419,7 +319,7 @@ int Colorcontrols()
     if (!Trap)
     {
       Trapdoor.set(false); // keep closed if Trap disabled
-      continue;
+      
     }
 
     // Only check if object is nearby
@@ -446,6 +346,38 @@ int Colorcontrols()
   }
   return 0;
 }
+
+bool jam = true;
+bool ra =false;
+int jamcontrols()
+{
+
+  while (true)
+  {
+    if (!jam)
+    {
+      RollerIntake.stop();
+    }
+
+    if (jam){
+      RollerIntake.spin(forward);
+      if(ra){
+        if(RollerIntake.velocity(rpm)<100){
+
+          RollerIntake.spin(reverse);
+          task::sleep(200);
+          RollerIntake.spin(forward);
+        }
+      }
+    }
+
+    wait(20, msec); // small delay to avoid CPU hog
+  }
+  return 0;
+}
+
+
+
 /*    ___           ___           ___           ___           ___           ___
      /\  \         /\__\         /\  \         /\  \         /\__\         /\  \
     /::\  \       /:/  /         \:\  \       /::\  \       /::|  |       /::\  \
@@ -459,19 +391,31 @@ int Colorcontrols()
      \/__/         \/__/                       \/__/         \/__/         \/__/ */
 
 ///////////////////////////////////////////////////////////////////////////
+AutonSelector autonSelector;
 
-//////////////////////////////////////////////////////////////////////////
-void auton() // A function named "auton", in this case, any code in the brackets will run once (unless in a loop) when its autonomous
+
+
+void pre_auton(void)
 {
+  vexcodeInit();
+  inertial19.calibrate();
+  while (inertial19.isCalibrating())
+  {
+    wait(50, msec);
+  }
+  startOdom(Xaxis, Yaxis, inertial19);
+}
+
+
+
+void leftAutonQuals() {
   outake.setStopping(coast);
   RollerIntake.setStopping(coast);
 
-  timer autonTimer;
-  autonTimer.reset();
-
   colorsort = task(Colorcontrols);
+  jamtask = task(jamcontrols);
   targetColor = vex::color::blue;
-  Trap = true;
+  Trap = false;
   L1.setVelocity(600, rpm);
   L2.setVelocity(600, rpm);
   L3.setVelocity(600, rpm);
@@ -483,206 +427,189 @@ void auton() // A function named "auton", in this case, any code in the brackets
   outake.setVelocity(200, rpm);
   RollerIntake.setVelocity(600, rpm);
 
+
+  RollerIntake.spin(forward);
+  drive(19,1500);
+  drive(8, 1500);
+  wait(0.2, sec);
+  turn(245);
+  wait(0.2, sec);
+  drive(-12,1500);
+  outake.spin(forward);
+  wait(1.3, sec);
+  outake.stop();
+  drive(47,1500);
+  turn(200);
+  Loader.set(true);
+  Lifter.set(true);
+  wait(0.2, sec);
+  drive(13,1100);
+  drive(-30,1500);
+  outake.spin(forward);
+}
+
+void autonLeftElims() {
+  outake.setStopping(coast);
+  RollerIntake.setStopping(coast);
+
+  colorsort = task(Colorcontrols);
+  jamtask = task(jamcontrols);
+  targetColor = vex::color::blue;
+  Trap = false;
+  L1.setVelocity(600, rpm);
+  L2.setVelocity(600, rpm);
+  L3.setVelocity(600, rpm);
+  R6.setVelocity(600, rpm);
+  R7.setVelocity(600, rpm);
+  R8.setVelocity(600, rpm);
+  Out.setVelocity(200, rpm);
+  Take.setVelocity(200, rpm);
+  outake.setVelocity(200, rpm);
+  RollerIntake.setVelocity(600, rpm);
+
+
+  bool jam = false;
+  drive(19, 1500);
+  ra = true;
+  drive(7.5, 1500);
+  turn(240);
+  drive(38, 1300);
+  Loader.set(true);
+  Lifter.set(true);
+  wait(0.3, sec);
+  turn(195);
+  wait(0.2, sec);
+  drive(13, 1000);
+  drive(-10, 1100);
+  wait(0.2, sec);
+  drive(-20, 1000);
+  outake.spin(forward);
+}
+
+//////////////////////////////////////////////////////////////////////////
+void auton() // A function named "auton", in this case, any code in the brackets will run once (unless in a loop) when its autonomous
+{
+
+  outake.setStopping(coast);
+  RollerIntake.setStopping(coast);
+
+  colorsort = task(Colorcontrols);
+  jamtask = task(jamcontrols);
+  targetColor = vex::color::blue;
+  Trap = false;
+  L1.setVelocity(600, rpm);
+  L2.setVelocity(600, rpm);
+  L3.setVelocity(600, rpm);
+  R6.setVelocity(600, rpm);
+  R7.setVelocity(600, rpm);
+  R8.setVelocity(600, rpm);
+  Out.setVelocity(200, rpm);
+  Take.setVelocity(200, rpm);
+  outake.setVelocity(200, rpm);
+  RollerIntake.setVelocity(600, rpm);
+
+
+  RollerIntake.spin(forward);
+  drive(19,1500);
+  drive(8, 1500);
+  wait(0.2, sec);
+  turn(245);
+  wait(0.2, sec);
+  drive(-12,1500);
+  outake.spin(forward);
+  wait(1.3, sec);
+  outake.stop();
+  drive(47,1500);
+  turn(200);
+  Loader.set(true);
+  Lifter.set(true);
+  wait(0.2, sec);
+  drive(13,1100);
+  wait(0.3,sec);
+  drive(-30,1500);
+  outake.spin(forward);
+
+
+
+  // outake.setStopping(coast);
+  // RollerIntake.setStopping(coast);
+
+  // colorsort = task(Colorcontrols);
+  // jamtask = task(jamcontrols);
+  // targetColor = vex::color::blue;
+  // Trap = false;
+  // L1.setVelocity(600, rpm);
+  // L2.setVelocity(600, rpm);
+  // L3.setVelocity(600, rpm);
+  // R6.setVelocity(600, rpm);
+  // R7.setVelocity(600, rpm);
+  // R8.setVelocity(600, rpm);
+  // Out.setVelocity(200, rpm);
+  // Take.setVelocity(200, rpm);
+  // outake.setVelocity(200, rpm);
+  // RollerIntake.setVelocity(600, rpm);
+
   ///////////////////////////////////////////////////////////////////////
   ////LEFT QUALS AUTON//////////
 
   // RollerIntake.spin(forward);
-  // drive(27);
-  // //drive(8);
+  // drive(19,1500);
+  // drive(8, 1500);
   // wait(0.2, sec);
   // turn(245);
   // wait(0.2, sec);
-  // drive(-12);
+  // drive(-12,1500);
   // outake.spin(forward);
   // wait(1.3, sec);
   // outake.stop();
-  // drive(47);
+  // drive(47,1500);
   // turn(200);
   // Loader.set(true);
   // Lifter.set(true);
   // wait(0.2, sec);
-  // drive(13);
-  // wait(0.2, sec);
-  // drive(-30);
+  // drive(13,1100);
+  // drive(-30,1500);
   // outake.spin(forward);
 
   //////////////////////////////////////////////////////////////////
 
   // good elims left auton
-  Brain.Timer.reset();
-  RollerIntake.spin(forward);
-  drive(19);
-  drive(7.5);
-  turn(240);
-  drive(37.5);
-  Loader.set(true);
-  Lifter.set(true);
-  wait(0.3, sec);
-  turn(195);
-  drive(13);
-  drive(-5);
-  turn(205);
-  drive(-25);
-  outake.spin(forward);
 
-  double elapsedTime = autonTimer.time(timeUnits::msec);
-  Brain.Screen.setCursor(8, 1);
-  Brain.Screen.print("Auton Time: %.2f seconds", elapsedTime);
-  /////////////////////////////////////////////////////////////////////////
-  // Brain.Screen.setCursor(7, 1);
-  // Brain.Screen.print("Time: %f", Brain.Timer.time(sec));
 
-  //   switch (autonSelected) {
-  //     case 0:
-  //       outake.setStopping(coast);
-  //       RollerIntake.setStopping(coast);
 
-  //       colorsort = task(Colorcontrols);
-  //       targetColor = vex::color::red;
-  //       Trap = true;
-  //       L1.setVelocity(600, rpm);
-  //       L2.setVelocity(600, rpm);
-  //       L3.setVelocity(600, rpm);
-  //       R6.setVelocity(600, rpm);
-  //       R7.setVelocity(600, rpm);
-  //       R8.setVelocity(600, rpm);
-  //       Out.setVelocity(200, rpm);
-  //       Take.setVelocity(200, rpm);
-  //       outake.setVelocity(200, rpm);
-  //       RollerIntake.setVelocity(600, rpm);
-
-  //       RollerIntake.spin(forward);
-
-  //       break;
-  // //////////////////////////////////////////////////////////
-
-  //     case 1:
-  //             outake.setStopping(coast);
-  //       RollerIntake.setStopping(coast);
-
-  //       colorsort = task(Colorcontrols);
-  //       targetColor = vex::color::red;
-  //       Trap = true;
-  //       L1.setVelocity(600, rpm);
-  //       L2.setVelocity(600, rpm);
-  //       L3.setVelocity(600, rpm);
-  //       R6.setVelocity(600, rpm);
-  //       R7.setVelocity(600, rpm);
-  //       R8.setVelocity(600, rpm);
-  //       Out.setVelocity(200, rpm);
-  //       Take.setVelocity(200, rpm);
-  //       outake.setVelocity(200, rpm);
-  //       RollerIntake.setVelocity(600, rpm);
-
-  //       RollerIntake.spin(reverse);
-
-  //       break;
-  // ///////////////////////////////////////////////////////////
-
-  //     case 2:
-  //       outake.setStopping(coast);
-  //       RollerIntake.setStopping(coast);
-
-  //       colorsort = task(Colorcontrols);
-  //       targetColor = vex::color::red;
-  //       Trap = true;
-  //       L1.setVelocity(600, rpm);
-  //       L2.setVelocity(600, rpm);
-  //       L3.setVelocity(600, rpm);
-  //       R6.setVelocity(600, rpm);
-  //       R7.setVelocity(600, rpm);
-  //       R8.setVelocity(600, rpm);
-  //       Out.setVelocity(200, rpm);
-  //       Take.setVelocity(200, rpm);
-  //       outake.setVelocity(200, rpm);
-  //       RollerIntake.setVelocity(600, rpm);
-
-  //       outake.spin(forward);
-
-  //       break;
-
-  // //////////////////////////////////////////////////////
-  //     case 3:
-  //             outake.setStopping(coast);
-  //       RollerIntake.setStopping(coast);
-
-  //       colorsort = task(Colorcontrols);
-  //       targetColor = vex::color::red;
-  //       Trap = true;
-  //       L1.setVelocity(600, rpm);
-  //       L2.setVelocity(600, rpm);
-  //       L3.setVelocity(600, rpm);
-  //       R6.setVelocity(600, rpm);
-  //       R7.setVelocity(600, rpm);
-  //       R8.setVelocity(600, rpm);
-  //       Out.setVelocity(200, rpm);
-  //       Take.setVelocity(200, rpm);
-  //       outake.setVelocity(200, rpm);
-  //       RollerIntake.setVelocity(600, rpm);
-
-  //       outake.spin(reverse);
-
-  //       break;
-  //   }
-
-  //////////////right quals auton//////////
-  // RollerIntake.spin(forward);
-  // drive(18.5);
-  // drive(9);
-  // turn(243);
-  // drive(-15);
-  // outake.spin(forward);
-  // wait(0.8, sec);
-  // outake.stop();
-  // drive(50);
-
-  // turn(195);
-  // Loader.set(true);
-  // Lifter.set(true);
-  // wait(0.2, sec);
-  // drive(13);
-  // wait(0.7, sec);
-  // Trap = true;
-  // wait(0.3, sec);
-  // drive(-10);
-  // turn(203);
-  // drive(-22);
-  // outake.spin(forward);
-
-  //////left side elims auton//////
-
-  // RollerIntake.spin(forward);
-  // drive(18.5);
-  // drive(8);
+  // bool jam = false;
+  // drive(19, 1500);
+  // ra = true;
+  // drive(7.5, 1500);
   // turn(240);
-  // drive(39.5);
-  // turn(195);
+  // drive(38, 1300);
   // Loader.set(true);
   // Lifter.set(true);
-  // wait(0.2, sec);
-  // drive(13);
-  // wait(0.7, sec);
-  // Trap = true;
   // wait(0.3, sec);
-  // drive(-10);
-  // turn(203);
-  // drive(-22);
+  // turn(195);
+  // wait(0.2, sec);
+  // drive(13, 1000);
+  // drive(-10, 1100);
+  // wait(0.2, sec);
+  // drive(-20, 1000);
   // outake.spin(forward);
+
 }
 
 int main()
 {
 
   vexcodeInit();
+
+
+  // autonSelector.addAuton("Left Quals", leftAutonQuals);
+  // autonSelector.addAuton("Left Elims", autonLeftElims);
+  // autonSelector.runSelection();
+
+
   pre_auton();
   Competition.autonomous(auton);          // what function to run when autonomous begins, in this case it would run the function "auton"
   Competition.drivercontrol(usercontrol); // what function to run when driver control begins, in this case it would run the function "usercontrol"
-  startOdom(Xaxis, Yaxis, inertial19);
-
-  // startOdomAt(Xaxis, Yaxis, inertial19,
-  //             autons[selectedAuton].startX,
-  //             autons[selectedAuton].startY,
-  //             autons[selectedAuton].startTheta);
   while (true)
   {
     // Get raw encoder values

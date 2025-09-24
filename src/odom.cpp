@@ -6,6 +6,8 @@
 
 using namespace vex;
 
+
+
 // Internal position state
 Pose currentPose = {0.0, 0.0, 0.0};
 
@@ -14,13 +16,13 @@ thread odomThread;
 bool odomRunning = false;
 
 // Sensor pointers
-extern rotation *xRot;
-extern rotation *yRot;
-extern inertial *imuSensor;
+rotation *xRot = nullptr;
+rotation *yRot = nullptr;
+inertial *imuSensor = nullptr;
 
 // Robot sensor offsets
 const double xOffset = 0.75;  // inches from center to X (lateral) tracker 0 inches    5.25
-const double yOffset = 5.25; // inches from center to Y (longitudinal) tracker 1.9 inches    0.75
+const double yOffset = 5.5; // inches from center to Y (longitudinal) tracker 1.9 inches    0.75
 
 // Wheel settings
 const double odomWheelDiameter = 2.0;
@@ -122,31 +124,31 @@ void startOdom(rotation &xSensor, rotation &ySensor, inertial &imu)
 }
 
 // New function: startOdomAt with custom starting position
-void startOdomAt(rotation &xSensor, rotation &ySensor, inertial &imu, double startX, double startY, double startTheta)
-{
-    xRot = &xSensor;
-    yRot = &ySensor;
-    imuSensor = &imu;
+// void startOdomAt(rotation &xSensor, rotation &ySensor, inertial &imu, double startX, double startY, double startTheta)
+// {
+//     xRot = &xSensor;
+//     yRot = &ySensor;
+//     imuSensor = &imu;
 
-    xRot->resetPosition();
-    yRot->resetPosition();
-    imuSensor->resetRotation();
+//     xRot->resetPosition();
+//     yRot->resetPosition();
+//     imuSensor->resetRotation();
 
-    // Initialize the pose to the specified parameters
-    currentPose.x = startX;
-    currentPose.y = startY;
-    currentPose.theta = startTheta;
+//     // Initialize the pose to the specified parameters
+//     currentPose.x = startX;
+//     currentPose.y = startY;
+//     currentPose.theta = startTheta;
 
-    // Convert initial pose to prevX, prevY, prevThetaRad for odomTask
-    prevX = xRot->position(turns) * wheelCircumference + startX;
-    prevY = yRot->position(turns) * wheelCircumference + startY;
-    prevThetaRad = startTheta * (M_PI / 180.0); // convert deg to rad
+//     // Convert initial pose to prevX, prevY, prevThetaRad for odomTask
+//     prevX = xRot->position(turns) * wheelCircumference + startX;
+//     prevY = yRot->position(turns) * wheelCircumference + startY;
+//     prevThetaRad = startTheta * (M_PI / 180.0); // convert deg to rad
 
-    odomRunning = true;
-    odomThread = thread(odomTask);
+//     odomRunning = true;
+//     odomThread = thread(odomTask);
 
-    wait(10, msec);
-}
+//     wait(10, msec);
+// }
 
 void stopOdom()
 {

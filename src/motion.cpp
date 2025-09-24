@@ -78,21 +78,19 @@ double minVolt(double v)
     return v;
 }
 
-void drive(double distInches)
+void drive(double distInches, double timeout)
 {
     distPID.reset();
 
-    // Define starting position and heading
-    Pose start = getPose();
-    double startX = start.x;
-    double startY = start.y;
-    double startHeading = start.theta; // Added for heading maintenance
-    
+    //distInches = distInches-2; //compensate for overshoot
+    // Define starting postion
+    double startX = getPose().x;
+    double startY = getPose().y;
     double target = distInches;
+    double start = getPose().ySensor;
 
     double lastError = 0;
     int elapsed = 0;
-    const int timeout = 1500;
 
     while (true)
     {
@@ -100,25 +98,26 @@ void drive(double distInches)
         Pose pose = getPose();
         double dx = pose.x - startX;
         double dy = pose.y - startY;
-        double traveled = sqrt(dx * dx + dy * dy);
+        double dstart = pose.ySensor - start;
+        double traveled = dstart;
         if (distInches < 0)
         {
-            traveled = -traveled;
+            traveled = traveled;
         }
         double error = target - traveled;
 
         // Compute linear output (PID)
         double linearOut = distPID.compute(target, traveled);
-        linearOut = linearOut * 12.0; // Scale to volts
+        // Clamp linearOut to [-1,+1]
+        // linearOut = clamp(linearOut, -1.0, 1.0);
+
+        // Scale to volts
+        linearOut = linearOut * 12.0;
+        // Check and apply minimum voltage
         linearOut = minVolt(linearOut);
 
-        // FIXED: Add heading maintenance during straight drives
-        double currentHeading = pose.theta;
-        double headingError = startHeading - currentHeading;
-        double turnCorrection = headingError * 0.08; // Small P-gain to maintain heading
-
-        double leftVolt = linearOut - turnCorrection;
-        double rightVolt = linearOut + turnCorrection;
+        double leftVolt = linearOut;
+        double rightVolt = linearOut;
 
         setDrive(leftVolt, rightVolt);
 
@@ -133,6 +132,7 @@ void drive(double distInches)
 
     stops();
 }
+
 
 void turn(double targetHeading)
 {
@@ -151,7 +151,7 @@ void turn(double targetHeading)
         while (remaining < -180) remaining += 360;
 
         // Use the normalized remaining angle for PID
-        double turnOutput = fastTurnPID.compute(0, remaining, false);
+        double turnOutput = fastTurnPID.compute(targetHeading, heading, true);
 
         // Clamp output between -1 and 1, then scale to volts
         turnOutput = clamp(turnOutput, -1.0, 1.0);
