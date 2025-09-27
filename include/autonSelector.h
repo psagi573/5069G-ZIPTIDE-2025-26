@@ -7,17 +7,21 @@ private:
     bool selecting;
     bool confirmed;
     
-    struct AutonOption {
+    vex::task* selectionTask;
+    static int selectionTaskFunc(void* selector);
+    void updateSelection();
+    
+public:
+        struct AutonOption {
         const char* name;
         void (*autonFunction)();
     };
     
-    std::vector<AutonOption> autonOptions;
-    
-public:
     AutonSelector();
     void addAuton(const char* name, void (*autonFunction)());
-    void displayAutonSelection();
-    void runSelection();
+    void startSelection();
+    void stopSelection();
     void executeSelectedAuton();
+    bool isSelecting() { return selecting; }
 };
+

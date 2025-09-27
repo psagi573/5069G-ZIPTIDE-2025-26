@@ -81,14 +81,10 @@ double minVolt(double v)
 void drive(double distInches, double timeout)
 {
     distPID.reset();
-
-    //distInches = distInches-2; //compensate for overshoot
-    // Define starting postion
     double startX = getPose().x;
     double startY = getPose().y;
     double target = distInches;
     double start = getPose().ySensor;
-
     double lastError = 0;
     int elapsed = 0;
 
@@ -105,26 +101,17 @@ void drive(double distInches, double timeout)
             traveled = traveled;
         }
         double error = target - traveled;
-
         // Compute linear output (PID)
         double linearOut = distPID.compute(target, traveled);
-        // Clamp linearOut to [-1,+1]
-        // linearOut = clamp(linearOut, -1.0, 1.0);
-
         // Scale to volts
         linearOut = linearOut * 12.0;
-        // Check and apply minimum voltage
         linearOut = minVolt(linearOut);
-
         double leftVolt = linearOut;
         double rightVolt = linearOut;
-
         setDrive(leftVolt, rightVolt);
-
         // Exit conditions
         if ((fabs(error) < 0.5 && fabs(error - lastError) < 0.1) || elapsed > timeout)
             break;
-
         lastError = error;
         elapsed += 10;
         wait(10, msec);
@@ -184,16 +171,10 @@ void arc(double radiusInches, double angleDeg)
     const double distTolerance = 0.5;  // inches
     const double angleTolerance = 1.0; // degrees
 
-    // Determine arc direction from radius sign
     bool arcLeft = (radiusInches < 0);
-
-    // Use absolute radius for calculations
     double absRadius = fabs(radiusInches);
 
-    // Calculate arc length (always positive)
     double arcLength = 2.0 * M_PI * absRadius * (fabs(angleDeg) / 360.0);
-
-    // Starting pose
     Pose startPose = getPose();
 
     // Calculate target heading and normalize to [-180, 180]
