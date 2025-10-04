@@ -1,22 +1,26 @@
-#include "autons.h"
-#include "motion.h"
-#include "odom.h"
+#include "Auton.h"
+#include "vex.h"
 
-void redLeftAuton()
-{
-    // Example autonomous routine for "Red Left"
-    drive(24,1000);   // Drive forward 24 inches
-    turn(90);  // Turn to 90 degrees
-    drive(40,1000);   // Drive forward 40 inches
-    // Add more actions as needed
+void autonomous_safe() {
+    RollerIntake.spin(forward,600,rpm);
 }
 
+void autonomous_skills() {
+    RollerIntake.spin(reverse,600,rpm);
+}
 
-void redRightAuton()
-{
-    // Example autonomous routine for "Red Right"
-    drive(24,1000);   // Drive forward 24 inches
-    turn(90);  // Turn to 90 degrees
-    drive(12,1000);   // Drive forward 12 inches
-    // Add more actions as needed
+void autonomous_left_awp() {
+    RollerIntake.spin(forward,100,rpm);
+}
+
+void autonomous_right_awp() {
+    RollerIntake.spin(reverse,100,rpm);
+}
+
+void autonomous_left_elim() {
+    Out.spin(forward,600,rpm);
+}
+
+void autonomous_right_elim() {
+    Out.spin(reverse,600,rpm);
 }

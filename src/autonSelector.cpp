@@ -1,120 +1,266 @@
-#include "autonSelector.h"
 #include "vex.h"
+#include "autonSelector.h"
+#include "Auton.h"
+#include "odometry.h"
 
 using namespace vex;
 
-// Add this extern declaration to access the Competition object from main.cpp
-extern competition Competition;
+// Global pointer for callback functions
+CompetitionAutonSelector* g_autonSelector = nullptr;
 
-std::vector<AutonSelector::AutonOption> autonOptions;
-
-AutonSelector::AutonSelector() {
-    currentAutonIndex = 0;
-    selecting = false;
-    confirmed = false;
-    selectionTask = nullptr;
-}
-
-void AutonSelector::addAuton(const char* name, void (*autonFunction)()) {
-    autonOptions.push_back({name, autonFunction});
-}
-
-void AutonSelector::updateSelection() {
-    if (!selecting || Competition.isEnabled()) {
-        stopSelection();
-        return;
+// C-style callback functions
+void cycleForwardCallback() {
+    if (g_autonSelector) {
+        g_autonSelector->cycleForward();
     }
-    
+}
+
+void cycleBackwardCallback() {
+    if (g_autonSelector) {
+        g_autonSelector->cycleBackward();
+    }
+}
+
+CompetitionAutonSelector::CompetitionAutonSelector() {
+    selectedMode = CompetitionAutonMode::LEFT_AWP;
+    currentIndex = 1;
+    competitionMode = false;
+    g_autonSelector = this;  // Set global pointer
+}
+
+void CompetitionAutonSelector::initialize() {
+    Brain.Screen.clearScreen();
     Controller1.Screen.clearScreen();
     
-    if (!confirmed) {
-        // Main selection screen
-        Controller1.Screen.setCursor(1, 1);
-        Controller1.Screen.print("A: Select  B: Back");
-        Controller1.Screen.setCursor(2, 1);
-        Controller1.Screen.print("L1/R1: Navigate");
-        Controller1.Screen.setCursor(3, 1);
-        Controller1.Screen.print("-> %s", autonOptions[currentAutonIndex].name);
-        
-        // Handle navigation
-        if (Controller1.ButtonL1.pressing()) {
-            currentAutonIndex--;
-            if (currentAutonIndex < 0) {
-                currentAutonIndex = autonOptions.size() - 1;
-            }
-            wait(200, msec); // Debounce
-        }
-        else if (Controller1.ButtonR1.pressing()) {
-            currentAutonIndex++;
-            if (currentAutonIndex >= autonOptions.size()) {
-                currentAutonIndex = 0;
-            }
-            wait(200, msec); // Debounce
-        }
-        else if (Controller1.ButtonA.pressing()) {
-            confirmed = true;
-            wait(200, msec);
-        }
+    // Only set up controller callbacks if NOT in competition mode
+    if (!competitionMode) {
+        Controller1.ButtonR1.pressed(cycleForwardCallback);
+        Controller1.ButtonL1.pressed(cycleBackwardCallback);
+    }
+    
+    updateDisplays();
+}
+
+void CompetitionAutonSelector::setCompetitionMode(bool isCompetition) {
+    competitionMode = isCompetition;
+    
+    // Update button callbacks based on mode
+    if (competitionMode) {
+        // In competition mode, disable the callbacks
+        Controller1.ButtonR1.pressed(NULL);
+        Controller1.ButtonL1.pressed(NULL);
     } else {
-        // Confirmation screen
+        // In practice mode, enable the callbacks
+        Controller1.ButtonR1.pressed(cycleForwardCallback);
+        Controller1.ButtonL1.pressed(cycleBackwardCallback);
+    }
+    
+    updateDisplays();
+}
+
+void CompetitionAutonSelector::updateDisplays() {
+    if (competitionMode) {
+        updateCompetitionDisplay();
+    } else {
+        updatePreMatchDisplay();
+    }
+    updateControllerDisplay();
+}
+
+void CompetitionAutonSelector::updatePreMatchDisplay() {
+    Brain.Screen.clearScreen();
+    
+    // Title - Pre-Match Mode
+    Brain.Screen.setPenColor(white);
+    Brain.Screen.setFont(propL);
+    Brain.Screen.printAt(160, 30, "PRE-MATCH SELECTOR");
+    Brain.Screen.setFont(propM);
+    Brain.Screen.setPenColor(cyan);
+    Brain.Screen.printAt(160, 55, "Practice Mode - Use Controller");
+    
+    // Current selection
+    Brain.Screen.setFillColor(modeColors[currentIndex]);
+    Brain.Screen.setPenColor(white);
+    Brain.Screen.drawRectangle(40, 80, 400, 60);
+    
+    // Direct string printing - no temporary buffers
+    Brain.Screen.setFont(propXL);
+    Brain.Screen.printAt(140, 120, modeNames[currentIndex]);
+    
+    // Instructions for practice mode
+    Brain.Screen.setFont(propM);
+    Brain.Screen.setPenColor(white);
+    Brain.Screen.printAt(50, 160, "L1: Previous  |  R1: Next");
+    Brain.Screen.printAt(50, 185, "Selection will be saved for competition");
+    
+    // All options
+    Brain.Screen.setPenColor(yellow);
+    Brain.Screen.printAt(50, 220, "Available Options:");
+    
+    for (int i = 0; i < 7; i++) {
+        int yPos = 240 + (i * 18);
+        if (i == currentIndex) {
+            Brain.Screen.setPenColor(yellow);
+            Brain.Screen.printAt(50, yPos, modeNames[i]);
+        } else {
+            Brain.Screen.setPenColor(white);
+            Brain.Screen.printAt(50, yPos, modeNames[i]);
+        }
+    }
+    
+    // Competition reminder
+    Brain.Screen.setPenColor(green);
+    Brain.Screen.printAt(50, 380, "At competition: Set switch to AUTO");
+}
+
+void CompetitionAutonSelector::updateCompetitionDisplay() {
+    Brain.Screen.clearScreen();
+    
+    // Title - Competition Mode
+    Brain.Screen.setPenColor(white);
+    Brain.Screen.setFont(propL);
+    Brain.Screen.printAt(160, 30, "COMPETITION MODE");
+    Brain.Screen.setFont(propM);
+    Brain.Screen.setPenColor(red);
+    Brain.Screen.printAt(160, 55, "Field Controlled - Switch to AUTO");
+    
+    // Current selection (read-only in competition)
+    Brain.Screen.setFillColor(modeColors[currentIndex]);
+    Brain.Screen.setPenColor(white);
+    Brain.Screen.drawRectangle(40, 80, 400, 60);
+    
+    // Direct string printing
+    Brain.Screen.setFont(propXL);
+    Brain.Screen.printAt(140, 120, modeNames[currentIndex]);
+    
+    // Competition instructions
+    Brain.Screen.setFont(propM);
+    Brain.Screen.setPenColor(white);
+    Brain.Screen.printAt(50, 160, "Selection: %d/%d", currentIndex + 1, 7);
+    Brain.Screen.printAt(50, 185, "Chosen during pre-match practice");
+    
+    // Status
+    Brain.Screen.setPenColor(green);
+    Brain.Screen.printAt(50, 220, "READY FOR MATCH");
+    Brain.Screen.printAt(50, 245, "Field switch controls autonomous start");
+    
+    // Cannot change reminder
+    Brain.Screen.setPenColor(red);
+    Brain.Screen.printAt(50, 280, "Cannot change during competition");
+    Brain.Screen.printAt(50, 305, "Use pre-match to set selection");
+}
+
+void CompetitionAutonSelector::updateControllerDisplay() {
+    Controller1.Screen.clearScreen();
+    
+    if (competitionMode) {
+        // Competition mode - minimal display
         Controller1.Screen.setCursor(1, 1);
-        Controller1.Screen.print("SELECTED AUTON:");
-        Controller1.Screen.setCursor(2, 1);
-        Controller1.Screen.print("%s", autonOptions[currentAutonIndex].name);
-        Controller1.Screen.setCursor(3, 1);
-        Controller1.Screen.print("A: Confirm  B: Back");
+        Controller1.Screen.print("COMP: %s", modeNames[currentIndex]);
         
-        if (Controller1.ButtonA.pressing()) {
-            selecting = false;
-            Controller1.Screen.clearScreen();
-            Controller1.Screen.setCursor(1, 1);
-            Controller1.Screen.print("Auton Ready:");
-            Controller1.Screen.setCursor(2, 1);
-            Controller1.Screen.print("%s", autonOptions[currentAutonIndex].name);
-        }
-        else if (Controller1.ButtonB.pressing()) {
-            confirmed = false;
-            wait(200, msec);
-        }
+        Controller1.Screen.setCursor(2, 1);
+        Controller1.Screen.print("Field Controlled");
+        
+        Controller1.Screen.setCursor(3, 1);
+        Controller1.Screen.print("Switch to AUTO");
+    } else {
+        // Practice mode - full controls
+        Controller1.Screen.setCursor(1, 1);
+        Controller1.Screen.print("PRACT: %s", modeNames[currentIndex]);
+        
+        Controller1.Screen.setCursor(2, 1);
+        Controller1.Screen.print("L1<  R1> to Change");
+        
+        Controller1.Screen.setCursor(3, 1);
+        Controller1.Screen.print("Selection: %d/7", currentIndex + 1);
     }
 }
 
-int AutonSelector::selectionTaskFunc(void* selector) {
-    AutonSelector* autonSelector = (AutonSelector*)selector;
-    
-    while (autonSelector->isSelecting() && !Competition.isEnabled()) {
-        autonSelector->updateSelection();
-        wait(50, msec);
-    }
-    
-    return 0;
-}
-
-void AutonSelector::startSelection() {
-    if (selecting || Competition.isEnabled()) return;
-    
-    selecting = true;
-    confirmed = false;
-    
-    if (selectionTask) {
-        selectionTask->stop();
-        delete selectionTask;
-    }
-    
-    selectionTask = new task(selectionTaskFunc, this);
-}
-
-void AutonSelector::stopSelection() {
-    selecting = false;
-    if (selectionTask) {
-        selectionTask->stop();
-        delete selectionTask;
-        selectionTask = nullptr;
+void CompetitionAutonSelector::cycleForward() {
+    // Only allow changes in practice mode
+    if (!competitionMode) {
+        currentIndex = (currentIndex + 1) % 7;
+        selectedMode = static_cast<CompetitionAutonMode>(currentIndex);
+        Controller1.rumble(".");
+        updateDisplays();
     }
 }
 
-void AutonSelector::executeSelectedAuton() {
-    if (autonOptions.size() > 0 && currentAutonIndex < autonOptions.size()) {
-        autonOptions[currentAutonIndex].autonFunction();
+void CompetitionAutonSelector::cycleBackward() {
+    // Only allow changes in practice mode
+    if (!competitionMode) {
+        currentIndex = (currentIndex - 1 + 7) % 7;
+        selectedMode = static_cast<CompetitionAutonMode>(currentIndex);
+        Controller1.rumble(".");
+        updateDisplays();
+    }
+}
+
+CompetitionAutonMode CompetitionAutonSelector::getSelectedMode() {
+    return selectedMode;
+}
+
+const char* CompetitionAutonSelector::getModeName() {
+    return modeNames[currentIndex];
+}
+
+void CompetitionAutonSelector::update() {
+  // Controller buttons
+  if (Controller1.ButtonR1.pressing()) {
+    cycleForward();
+    wait(250, msec); // debounce
+  }
+
+  if (Controller1.ButtonL1.pressing()) {
+    cycleBackward();
+    wait(250, msec); // debounce
+  }
+}
+
+void CompetitionAutonSelector::runSelectedAuton() {
+    // Display running message
+    Brain.Screen.clearScreen();
+    Brain.Screen.setPenColor(green);
+    Brain.Screen.setFont(propXL);
+    Brain.Screen.printAt(120, 100, "RUNNING");
+    Brain.Screen.setFont(propL);
+    Brain.Screen.printAt(120, 140, getModeName());
+    
+    Controller1.Screen.clearScreen();
+    Controller1.Screen.setCursor(1, 1);
+    Controller1.Screen.print("RUN: %s", getModeName());
+    
+    wait(500, msec);
+    
+    // Run autonomous based on selection
+    switch (selectedMode) {
+        case CompetitionAutonMode::SKILLS:
+            startOdom(Xaxis, Yaxis, inertial19);
+            autonomous_skills();
+            break;
+        case CompetitionAutonMode::LEFT_AWP:
+            startOdom(Xaxis, Yaxis, inertial19);
+            autonomous_left_awp();
+            break;
+        case CompetitionAutonMode::RIGHT_AWP:
+            startOdom(Xaxis, Yaxis, inertial19);
+            autonomous_right_awp();
+            break;
+        case CompetitionAutonMode::LEFT_ELIM:
+            startOdom(Xaxis, Yaxis, inertial19);    
+            autonomous_left_elim();
+            break;
+        case CompetitionAutonMode::RIGHT_ELIM:
+            startOdom(Xaxis, Yaxis, inertial19);
+            autonomous_right_elim();
+            break;
+        case CompetitionAutonMode::SAFE:
+            startOdom(Xaxis, Yaxis, inertial19);
+            autonomous_safe();
+            break;
+        case CompetitionAutonMode::DISABLED:
+            // No autonomous - just wait out the time
+            wait(15, sec);
+            break;
     }
 }
