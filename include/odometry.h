@@ -14,7 +14,7 @@ extern Pose currentPose;
 bool startOdom(rotation &xSensor, rotation &ySensor, inertial &imu);
 void stopOdom();
 void resetOdom();
-Pose getCurrentPose();
+Pose getPose();
 void setCurrentPose(double x, double y, double theta);
 
 // Utility functions

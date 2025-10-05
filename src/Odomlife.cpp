@@ -20,8 +20,8 @@ inertial *imuSensor = nullptr;
 mutex poseMutex;
 
 // Robot sensor offsets - adjust these for your robot!
-double xOffset = 0.75; // inches from center to X (lateral) tracker
-double yOffset = 5.5;  // inches from center to Y (longitudinal) tracker
+double xOffset = 0.75; // inches from center to X (lateral) tracker 0.75
+double yOffset = 6.5;  // inches from center to Y (longitudinal) tracker 6.5
 
 // Wheel settings
 double odomWheelDiameter = 2.0;
@@ -123,23 +123,23 @@ bool startOdom(rotation &xSensor, rotation &ySensor, inertial &imu)
     imuSensor = &imu;
 
     // Calibrate IMU with timeout
-    imu.calibrate();
-    int calibrationWait = 0;
-    const int CALIBRATION_TIMEOUT = 3000; // 3 seconds
+    // imu.calibrate();
+    // int calibrationWait = 0;
+    // const int CALIBRATION_TIMEOUT = 3000; // 3 seconds
 
-    while (imu.isCalibrating() && calibrationWait < CALIBRATION_TIMEOUT)
-    {
-        wait(50, msec);
-        calibrationWait += 50;
-        Controller1.Screen.print("Calibrating... %d", calibrationWait / 50);
-    }
+    // while (imu.isCalibrating() && calibrationWait < CALIBRATION_TIMEOUT)
+    // {
+    //     wait(50, msec);
+    //     calibrationWait += 50;
+    //     Controller1.Screen.print("Calibrating... %d", calibrationWait / 50);
+    // }
 
-    if (imu.isCalibrating())
-    {
-        Controller1.Screen.print("ODOM: IMU calib timeout!");
-        Brain.Screen.print("ODOM: IMU calibration failed!");
-        return false;
-    }
+    // if (imu.isCalibrating())
+    // {
+    //     Controller1.Screen.print("ODOM: IMU calib timeout!");
+    //     Brain.Screen.print("ODOM: IMU calibration failed!");
+    //     return false;
+    // }
 
     // Reset sensors
     xRot->resetPosition();
@@ -160,7 +160,6 @@ bool startOdom(rotation &xSensor, rotation &ySensor, inertial &imu)
 
     wait(100, msec); // Allow thread to start
 
-    Controller1.Screen.print("Odom started!");
     return true;
 }
 
@@ -213,7 +212,7 @@ void resetOdom()
     }
 }
 
-Pose getCurrentPose()
+Pose getPose()
 {
     Pose poseCopy;
     poseMutex.lock();
@@ -241,7 +240,7 @@ void setCurrentPose(double x, double y, double theta)
 
 void printPose()
 {
-    Pose p = getCurrentPose();
+    Pose p = getPose();
     Brain.Screen.clearScreen();
     Brain.Screen.setCursor(1, 1);
     Brain.Screen.print("X: %.2f, Y: %.2f", p.x, p.y);

@@ -33,7 +33,7 @@
 #include <cmath>     //allows you to use the cmath library/extention witch lets you do square root, absolute value, sin cos tan, ect
 #include "vex.h"     //you need it so vex stuff works
 #include "PID.h"
-#include "odom.h"
+#include "odometry.h"
 #include "motion.h"
 #include "profile.h"
 #include "autonSelector.h"
@@ -100,7 +100,6 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
   R8.setVelocity(600, rpm);
   outake.setVelocity(200, rpm);
   RollerIntake.setVelocity(600, rpm);
-
 
   while (true)
   {
@@ -317,8 +316,8 @@ int Colorcontrols()
         // Check if the color matches
         if (Color.color() == targetColor)
         {
-          RollerIntake.spin(reverse); 
-          task::sleep(100);          
+          RollerIntake.spin(reverse);
+          task::sleep(100);
           RollerIntake.spin(forward);
         }
         else
@@ -328,7 +327,7 @@ int Colorcontrols()
       }
       else
       {
-        RollerIntake.spin(forward); 
+        RollerIntake.spin(forward);
       }
 
       wait(20, msec); // small delay to avoid CPU hog
@@ -382,7 +381,6 @@ int jamcontrols()
      \/__/         \/__/                       \/__/         \/__/         \/__/ */
 
 ///////////////////////////////////////////////////////////////////////////
-
 
 // Your autonomous functions
 // void leftAutonQuals() {
@@ -449,8 +447,6 @@ int jamcontrols()
 //   outake.setVelocity(200, rpm);
 //   RollerIntake.setVelocity(600, rpm);
 
-
-
 //   bool jam = false;
 //   drive(19, 1500);
 //   vel = true;
@@ -508,7 +504,6 @@ int jamcontrols()
 
 CompetitionAutonSelector autonSelector;
 
-
 void pre_auton(void)
 {
   vexcodeInit();
@@ -517,44 +512,48 @@ void pre_auton(void)
   {
     wait(50, msec);
   }
-  
-  autonSelector.initialize();
-    while (!Competition.isAutonomous() && !Competition.isDriverControl()) {
-    autonSelector.update();   // <- keep checking for inputs
-    wait(20, msec);
-  }
+
+  startOdom(Xaxis, Yaxis, inertial19);
+
+  // autonSelector.initialize();
+  //   while (!Competition.isAutonomous() && !Competition.isDriverControl()) {
+  //   autonSelector.update();   // <- keep checking for inputs
+  //   wait(20, msec);
 }
 
 //////////////////////////////////////////////////////////////////////////
 void auton() // A function named "auton", in this case, any code in the brackets will run once (unless in a loop) when its autonomous
 {
 
-  autonSelector.runSelectedAuton();
+ 
+  // autonSelector.runSelectedAuton();
 
 
 
-  // outake.setStopping(coast);
-  // RollerIntake.setStopping(coast);
-
-  // colorsort = task(Colorcontrols);
-  // jamtask = task(jamcontrols);
-  // targetColor = vex::color::blue;
-  // jam = true;
-  // Trap = false;
-  // L1.setVelocity(600, rpm);
-  // L2.setVelocity(600, rpm);
-  // L3.setVelocity(600, rpm);
-  // R6.setVelocity(600, rpm);
-  // R7.setVelocity(600, rpm);
-  // R8.setVelocity(600, rpm);
-  // Out.setVelocity(200, rpm);
-  // Take.setVelocity(200, rpm);
-  // outake.setVelocity(200, rpm);
-  // RollerIntake.setVelocity(600, rpm);
 
 
-  
-  // RollerIntake.spin(forward);
+
+
+  outake.setStopping(coast);
+  RollerIntake.setStopping(coast);
+
+  colorsort = task(Colorcontrols);
+  jamtask = task(jamcontrols);
+  targetColor = vex::color::blue;
+  jam = true;
+  Trap = true;
+  L1.setVelocity(600, rpm);
+  L2.setVelocity(600, rpm);
+  L3.setVelocity(600, rpm);
+  R6.setVelocity(600, rpm);
+  R7.setVelocity(600, rpm);
+  R8.setVelocity(600, rpm);
+  Out.setVelocity(200, rpm);
+  Take.setVelocity(200, rpm);
+  outake.setVelocity(200, rpm);
+  RollerIntake.setVelocity(600, rpm);
+
+  RollerIntake.spin(forward);
   // drive(19, 1500);
   // vel = false;
   // drive(7.5, 1500);
@@ -586,13 +585,8 @@ void auton() // A function named "auton", in this case, any code in the brackets
   // wait(0.5, sec);
   // drive(0, 1500);
 
-
-
-
-
-
-    // autonSelector.stopSelection();
-    // autonSelector.executeSelectedAuton();
+  // autonSelector.stopSelection();
+  // autonSelector.executeSelectedAuton();
   ///////////////////////////////////////////////////////////////////////
   ////LEFT QUALS AUTON//////////
   // outake.setStopping(coast);
@@ -635,26 +629,6 @@ void auton() // A function named "auton", in this case, any code in the brackets
 
   //////////////////////////////////////////////////////////////////
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   // good elims left auton
   // outake.setStopping(coast);
   // RollerIntake.setStopping(coast);
@@ -674,7 +648,6 @@ void auton() // A function named "auton", in this case, any code in the brackets
   // Take.setVelocity(200, rpm);
   // outake.setVelocity(200, rpm);
   // RollerIntake.setVelocity(600, rpm);
-
 
   // RollerIntake.spin(forward);
   // drive(19, 1500);
@@ -698,22 +671,7 @@ void auton() // A function named "auton", in this case, any code in the brackets
   // wait(3,sec);
   // drive(27,1500);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-////////////////////////////////////////////////
-
-
+  ////////////////////////////////////////////////
 
   // good elims left auton
   // outake.setStopping(coast);
@@ -734,7 +692,6 @@ void auton() // A function named "auton", in this case, any code in the brackets
   // Take.setVelocity(200, rpm);
   // outake.setVelocity(200, rpm);
   // RollerIntake.setVelocity(600, rpm);
-
 
   // RollerIntake.spin(forward);
   // drive(19, 1500);
@@ -760,19 +717,9 @@ void auton() // A function named "auton", in this case, any code in the brackets
   // RollerIntake.stop();
   // drive(27,1500);
 
-
-
-
-
-
-
-
-
-
   //////////////////////////////////////////////////////////////////
 
   // good elims Right auton
-
 
   //  outake.setStopping(coast);
   // RollerIntake.setStopping(coast);
@@ -792,7 +739,6 @@ void auton() // A function named "auton", in this case, any code in the brackets
   // Take.setVelocity(200, rpm);
   // outake.setVelocity(200, rpm);
   // RollerIntake.setVelocity(600, rpm);
-
 
   // RollerIntake.spin(forward);
   // drive(19, 1500);
@@ -814,7 +760,6 @@ void auton() // A function named "auton", in this case, any code in the brackets
   // outake.spin(forward);
 }
 
-
 int main()
 {
   vexcodeInit();
@@ -822,42 +767,41 @@ int main()
   Competition.autonomous(auton);          // what function to run when autonomous begins, in this case it would run the function "auton"
   Competition.drivercontrol(usercontrol); // what function to run when driver control begins, in this case it would run the function "usercontrol"
 
-
   while (true)
   {
-    // Get raw encoder values
-    // double xEnc = Xaxis.position(turns);
-    // double yEnc = Yaxis.position(turns);
+    //Get raw encoder values
+    double xEnc = Xaxis.position(turns);
+    double yEnc = Yaxis.position(turns);
 
-    // double heading = inertial19.rotation();
+    double heading = inertial19.rotation();
 
-    // // Get computed position from your odometry
-    // Pose currentPose = getPose();
+    // Get computed position from your odometry
+    Pose currentPose = getPose();
 
-    // Brain.Screen.clearScreen();
-    // Brain.Screen.setCursor(1, 1);
-    // Brain.Screen.print("X Encoder: %.2f", xEnc);
-    // Brain.Screen.setCursor(2, 1);
-    // Brain.Screen.print("Y Encoder: %.2f", yEnc);
-    // Brain.Screen.print("Y inch: %.2f", yEnc * 2);
-    // Brain.Screen.setCursor(3, 1);
-    // Brain.Screen.print("Heading: %.2f", heading);
-    // Brain.Screen.setCursor(4, 1);
-    // Brain.Screen.print("Pose X: %.2f", currentPose.x);
-    // Brain.Screen.setCursor(5, 1);
-    // Brain.Screen.print("Pose Y: %.2f", currentPose.y);
-    // Brain.Screen.setCursor(6, 1);
-    // Brain.Screen.print("Pose Theta: %.2f", currentPose.theta);
+    Brain.Screen.clearScreen();
+    Brain.Screen.setCursor(1, 1);
+    Brain.Screen.print("X Encoder: %.2f", xEnc);
+    Brain.Screen.setCursor(2, 1);
+    Brain.Screen.print("Y Encoder: %.2f", yEnc);
+    Brain.Screen.print("Y inch: %.2f", yEnc * 2);
+    Brain.Screen.setCursor(3, 1);
+    Brain.Screen.print("Heading: %.2f", heading);
+    Brain.Screen.setCursor(4, 1);
+    Brain.Screen.print("Pose X: %.2f", currentPose.x);
+    Brain.Screen.setCursor(5, 1);
+    Brain.Screen.print("Pose Y: %.2f", currentPose.y);
+    Brain.Screen.setCursor(6, 1);
+    Brain.Screen.print("Pose Theta: %.2f", currentPose.theta);
 
-    // Controller1.Screen.clearLine(0);
-    // Controller1.Screen.setCursor(1, 1);
-    // Controller1.Screen.print("X: %.2f", currentPose.x);
-    // Controller1.Screen.setCursor(2, 1);
-    // Controller1.Screen.print("Y: %.2f", currentPose.y);
-    // Controller1.Screen.setCursor(3, 1);
-    // Controller1.Screen.print("T: %.2f", currentPose.theta);
-    // printf("(%.2f, %.2f),", currentPose.x, currentPose.y);
-    // fflush(stdout);
+    Controller1.Screen.clearLine(0);
+    Controller1.Screen.setCursor(1, 1);
+    Controller1.Screen.print("X: %.2f", currentPose.x);
+    Controller1.Screen.setCursor(2, 1);
+    Controller1.Screen.print("Y: %.2f", currentPose.y);
+    Controller1.Screen.setCursor(3, 1);
+    Controller1.Screen.print("T: %.2f", currentPose.theta);
+    printf("(%.2f, %.2f),", currentPose.x, currentPose.y);
+    fflush(stdout);
 
     wait(50, msec); // Delay to avoid screen spam
   }

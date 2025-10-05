@@ -5,6 +5,7 @@
 #include <cmath>
 #include <algorithm>
 #include "utils.h"
+#include "odometry.h"
 
 using namespace vex;
 
@@ -84,7 +85,7 @@ void drive(double distInches, double timeout)
     double startX = getPose().x;
     double startY = getPose().y;
     double target = distInches;
-    double start = getPose().ySensor;
+    double start = Yaxis.position(turns) * 2; // in inches
     double lastError = 0;
     int elapsed = 0;
 
@@ -94,7 +95,7 @@ void drive(double distInches, double timeout)
         Pose pose = getPose();
         double dx = pose.x - startX;
         double dy = pose.y - startY;
-        double dstart = pose.ySensor - start;
+        double dstart = Yaxis.position(turns) * 2 - start;
         double traveled = dstart;
         if (distInches < 0)
         {
