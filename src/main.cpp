@@ -45,8 +45,8 @@ using namespace vex; // you need it so vex stuff works
 motor_group R = motor_group(R6, R7, R8);
 motor_group L = motor_group(L1, L2, L3);
 drivetrain Drivetrain = drivetrain(R, L);
-motor_group outake = motor_group(Out, Take);
-motor_group scorer = motor_group(Out, Take, RollerIntake);
+motor_group RollerIntake = motor_group(Roller, Intake);
+
 
 competition Competition; // you need it so it works at a competition
 // Global auton selector
@@ -81,15 +81,14 @@ int getExpoValue(int joystickValue)
 
 int DriveTrainControls() // we create a integer function named "DriveTrainControls", later in the code we plan to turnpid this into a Thread that controls the drivetrain
 {
-  outake.stop();
-  RollerIntake.stop();
+  Roller.stop();
+  Intake.stop();
   L1.setStopping(brake);
   L2.setStopping(brake);
   L3.setStopping(brake);
   R6.setStopping(brake);
   R7.setStopping(brake);
   R8.setStopping(brake);
-  outake.setStopping(brake);
   RollerIntake.setStopping(brake);
 
   L1.setVelocity(600, rpm);
@@ -98,10 +97,7 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
   R6.setVelocity(600, rpm);
   R7.setVelocity(600, rpm);
   R8.setVelocity(600, rpm);
-  outake.setVelocity(200, rpm);
-  jj.setVelocity(200, rpm);
-  jk.setVelocity(200, rpm);
-  RollerIntake.setVelocity(600, rpm);
+  RollerIntake.setVelocity(200, rpm);
 
   while (true)
   {
@@ -119,68 +115,18 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
   }
 }
 
-int SystemControls()
-{
-  outake.stop();
-  RollerIntake.stop();
-  while (true)
-  {
-    if (Controller1.ButtonR1.pressing())
-    {
-      scorer.spin(forward);                        // Move arm forward when R1 is pressed again
-      waitUntil(!Controller1.ButtonR1.pressing()); // keeps it spining until the user let go of R1
-      scorer.stop();
-    }
-    wait(10, msec);
-  }
-}
-
-int jkkControls()
-{
-  jk.stop();
-  jj.stop();
-  while (true)
-  {
-    if (Controller1.ButtonUp.pressing())
-    {
-      jj.spin(forward);
-      jk.spin(forward);
-      waitUntil(!Controller1.ButtonUp.pressing()); // keeps it spining until the user let go of R1
-      jk.stop();
-      jj.stop();
-    }
-    wait(10, msec);
-  }
-}
-
-
-int OutakeControls()
-{
-  outake.stop();
-  RollerIntake.stop();
-  while (true)
-  {
-    if (Controller1.ButtonR2.pressing())
-    {
-      outake.spin(reverse);                        // Change direction to reverse when R2 is pressed
-      waitUntil(!Controller1.ButtonR2.pressing()); // keeps it spining until the user let go of R1
-      outake.stop();
-    }
-    wait(10, msec);
-  }
-}
 
 int IntakeControls()
 {
-  outake.stop();
-  RollerIntake.stop();
+  Roller.stop();
+  Intake.stop();
   while (true)
   {
 
-    if (Controller1.ButtonL1.pressing())
+    if (Controller1.ButtonR1.pressing())
     {
-      RollerIntake.spin(reverse);
-      waitUntil(!Controller1.ButtonL1.pressing()); // keeps it spinning until the user let go of R1
+      RollerIntake.spin(forward);
+      waitUntil(!Controller1.ButtonR1.pressing()); // keeps it spinning until the user let go of R1
       RollerIntake.stop();
     }
     wait(10, msec);
@@ -191,79 +137,13 @@ int Intake2Controls()
 {
   while (true)
   {
-    if (Controller1.ButtonL2.pressing())
+    if (Controller1.ButtonR2.pressing())
     {
-      RollerIntake.spin(forward);
-      waitUntil(!Controller1.ButtonL2.pressing()); // keeps it spinning until the user let go of R1
+      RollerIntake.spin(reverse);
+      waitUntil(!Controller1.ButtonR2.pressing()); // keeps it spinning until the user let go of R2
       RollerIntake.stop();
     }
     wait(10, msec);
-  }
-}
-
-int LifterControls()
-{
-  bool Lifter1 = false;
-  while (true)
-  {
-    if (Controller1.ButtonB.pressing())
-    {
-      if (Lifter1)
-      {
-        Lifter1 = false;
-      }
-      else if (!Lifter1)
-      {
-        Lifter1 = true;
-      }
-      while (Controller1.ButtonB.pressing())
-      {
-
-        wait(5, msec);
-      }
-
-      if (Lifter1)
-      {
-        Lifter.set(true);
-      }
-      else
-      {
-        Lifter.set(false);
-      }
-    }
-  }
-}
-
-int LoaderControls()
-{
-  bool Loader1 = false;
-  while (true)
-  {
-    if (Controller1.ButtonDown.pressing())
-    {
-      if (Loader1)
-      {
-        Loader1 = false;
-      }
-      else if (!Loader1)
-      {
-        Loader1 = true;
-      }
-      while (Controller1.ButtonDown.pressing())
-      {
-
-        wait(5, msec);
-      }
-
-      if (Loader1)
-      {
-        Loader.set(true);
-      }
-      else
-      {
-        Loader.set(false);
-      }
-    }
   }
 }
 
@@ -306,15 +186,10 @@ void usercontrol() // A function named "usercontrol", in this case, any code in 
 {
   colorsort.stop();
   task a(DriveTrainControls); // creates a Thread Named "a" that runs the function "DriveTrainControls", This thread controls the drivetrain
-  task b(SystemControls);     // same as drivetrain controls but for the lifter
-  task c(LifterControls);
-  task d(OutakeControls);
-  task e(IntakeControls);
-  task f(Intake2Controls);
-  task g(LoaderControls);
-  task h(trapcontrols);
-  task i(jamtask);
-  task j(jkkControls);
+  task b(IntakeControls);
+  task c(Intake2Controls);
+  task d(trapcontrols);
+  task f(jamtask);
 }
 
 bool Trap = false;                        // whether to enable sorting
@@ -555,8 +430,6 @@ void auton() // A function named "auton", in this case, any code in the brackets
 
 
 
-
-  outake.setStopping(coast);
   RollerIntake.setStopping(coast);
 
   colorsort = task(Colorcontrols);
@@ -570,9 +443,6 @@ void auton() // A function named "auton", in this case, any code in the brackets
   R6.setVelocity(600, rpm);
   R7.setVelocity(600, rpm);
   R8.setVelocity(600, rpm);
-  Out.setVelocity(200, rpm);
-  Take.setVelocity(200, rpm);
-  outake.setVelocity(200, rpm);
   RollerIntake.setVelocity(600, rpm);
 
   RollerIntake.spin(forward);
