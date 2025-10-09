@@ -99,6 +99,8 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
   R7.setVelocity(600, rpm);
   R8.setVelocity(600, rpm);
   outake.setVelocity(200, rpm);
+  jj.setVelocity(200, rpm);
+  jk.setVelocity(200, rpm);
   RollerIntake.setVelocity(600, rpm);
 
   while (true)
@@ -132,6 +134,25 @@ int SystemControls()
     wait(10, msec);
   }
 }
+
+int jkkControls()
+{
+  jk.stop();
+  jj.stop();
+  while (true)
+  {
+    if (Controller1.ButtonUp.pressing())
+    {
+      jj.spin(forward);
+      jk.spin(forward);
+      waitUntil(!Controller1.ButtonUp.pressing()); // keeps it spining until the user let go of R1
+      jk.stop();
+      jj.stop();
+    }
+    wait(10, msec);
+  }
+}
+
 
 int OutakeControls()
 {
@@ -293,6 +314,7 @@ void usercontrol() // A function named "usercontrol", in this case, any code in 
   task g(LoaderControls);
   task h(trapcontrols);
   task i(jamtask);
+  task j(jkkControls);
 }
 
 bool Trap = false;                        // whether to enable sorting
