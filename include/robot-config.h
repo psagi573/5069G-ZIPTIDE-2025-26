@@ -19,6 +19,7 @@ extern digital_out Loader;
 extern digital_out Trapdoor;
 extern motor Roller;
 extern motor Intake;
+extern motor middle;
 extern optical Color;
 
 /**

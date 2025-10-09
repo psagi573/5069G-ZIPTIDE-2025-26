@@ -46,7 +46,7 @@ motor_group R = motor_group(R6, R7, R8);
 motor_group L = motor_group(L1, L2, L3);
 drivetrain Drivetrain = drivetrain(R, L);
 motor_group RollerIntake = motor_group(Roller, Intake);
-
+motor_group Intaker = motor_group(Roller, Intake, middle);
 
 competition Competition; // you need it so it works at a competition
 // Global auton selector
@@ -83,13 +83,14 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
 {
   Roller.stop();
   Intake.stop();
+  middle.stop();
   L1.setStopping(brake);
   L2.setStopping(brake);
   L3.setStopping(brake);
   R6.setStopping(brake);
   R7.setStopping(brake);
   R8.setStopping(brake);
-  RollerIntake.setStopping(brake);
+  Intaker.setStopping(brake);
 
   L1.setVelocity(600, rpm);
   L2.setVelocity(600, rpm);
@@ -97,7 +98,7 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
   R6.setVelocity(600, rpm);
   R7.setVelocity(600, rpm);
   R8.setVelocity(600, rpm);
-  RollerIntake.setVelocity(200, rpm);
+  Intaker.setVelocity(600, rpm);
 
   while (true)
   {
@@ -115,7 +116,6 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
   }
 }
 
-
 int IntakeControls()
 {
   Roller.stop();
@@ -125,9 +125,9 @@ int IntakeControls()
 
     if (Controller1.ButtonR1.pressing())
     {
-      RollerIntake.spin(forward);
+      Intaker.spin(forward);
       waitUntil(!Controller1.ButtonR1.pressing()); // keeps it spinning until the user let go of R1
-      RollerIntake.stop();
+      Intaker.stop();
     }
     wait(10, msec);
   }
@@ -139,9 +139,39 @@ int Intake2Controls()
   {
     if (Controller1.ButtonR2.pressing())
     {
-      RollerIntake.spin(reverse);
+      Intaker.spin(reverse);
       waitUntil(!Controller1.ButtonR2.pressing()); // keeps it spinning until the user let go of R2
+      Intaker.stop();
+    }
+    wait(10, msec);
+  }
+}
+
+int middleControls()
+{
+  while (true)
+  {
+    if (Controller1.ButtonL1.pressing())
+    {
+      middle.spin(reverse);
+      RollerIntake.spin(forward);
+      waitUntil(!Controller1.ButtonL1.pressing()); // keeps it spinning until the user let go of L1
+      middle.stop();
       RollerIntake.stop();
+    }
+    wait(10, msec);
+  }
+}
+
+int storeControls()
+{
+  while (true)
+  {
+    if (Controller1.ButtonL2.pressing())
+    {
+      Intaker.spin(forward, 100, rpm);
+      waitUntil(!Controller1.ButtonL2.pressing()); // keeps it spinning until the user let go of L1
+      Intaker.stop();
     }
     wait(10, msec);
   }
@@ -188,8 +218,10 @@ void usercontrol() // A function named "usercontrol", in this case, any code in 
   task a(DriveTrainControls); // creates a Thread Named "a" that runs the function "DriveTrainControls", This thread controls the drivetrain
   task b(IntakeControls);
   task c(Intake2Controls);
-  task d(trapcontrols);
-  task f(jamtask);
+  task d(middleControls);
+  task e(storeControls);
+  task f(trapcontrols);
+  task g(jamtask);
 }
 
 bool Trap = false;                        // whether to enable sorting
@@ -422,13 +454,7 @@ void pre_auton(void)
 void auton() // A function named "auton", in this case, any code in the brackets will run once (unless in a loop) when its autonomous
 {
 
- 
   // autonSelector.runSelectedAuton();
-
-
-
-
-
 
   RollerIntake.setStopping(coast);
 
@@ -661,7 +687,7 @@ int main()
 
   while (true)
   {
-    //Get raw encoder values
+    // Get raw encoder values
     double xEnc = Xaxis.position(turns);
     double yEnc = Yaxis.position(turns);
 

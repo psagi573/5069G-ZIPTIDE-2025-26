@@ -18,6 +18,7 @@ motor R7 = motor(PORT19, ratio6_1, false);
 motor R8 = motor(PORT20, ratio6_1, true);
 motor Roller = motor(PORT10, ratio18_1, false);
 motor Intake = motor(PORT1, ratio18_1, true);
+motor middle = motor(PORT9, ratio18_1, false);
 rotation Yaxis = rotation(PORT15, false);
 rotation Xaxis = rotation(PORT16, true);
 inertial inertial19 = inertial(PORT11);
