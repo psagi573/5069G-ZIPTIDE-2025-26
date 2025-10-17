@@ -525,35 +525,28 @@ void pre_auton(void)
 void auton() // A function named "auton", in this case, any code in the brackets will run once (unless in a loop) when its autonomous
 {
 
- 
-  // autonSelector.runSelectedAuton();
+/////Skills///////
 
+  // outake.setStopping(coast);
+  // RollerIntake.setStopping(coast);
 
+  // colorsort = task(Colorcontrols);
+  // jamtask = task(jamcontrols);
+  // targetColor = vex::color::blue;
+  // jam = true;
+  // Trap = true;
+  // L1.setVelocity(600, rpm);
+  // L2.setVelocity(600, rpm);
+  // L3.setVelocity(600, rpm);
+  // R6.setVelocity(600, rpm);
+  // R7.setVelocity(600, rpm);
+  // R8.setVelocity(600, rpm);
+  // Out.setVelocity(200, rpm);
+  // Take.setVelocity(200, rpm);
+  // outake.setVelocity(200, rpm);
+  // RollerIntake.setVelocity(600, rpm);
 
-
-
-
-
-  outake.setStopping(coast);
-  RollerIntake.setStopping(coast);
-
-  colorsort = task(Colorcontrols);
-  jamtask = task(jamcontrols);
-  targetColor = vex::color::blue;
-  jam = true;
-  Trap = true;
-  L1.setVelocity(600, rpm);
-  L2.setVelocity(600, rpm);
-  L3.setVelocity(600, rpm);
-  R6.setVelocity(600, rpm);
-  R7.setVelocity(600, rpm);
-  R8.setVelocity(600, rpm);
-  Out.setVelocity(200, rpm);
-  Take.setVelocity(200, rpm);
-  outake.setVelocity(200, rpm);
-  RollerIntake.setVelocity(600, rpm);
-
-  RollerIntake.spin(forward);
+  // RollerIntake.spin(forward);
   // drive(19, 1500);
   // vel = false;
   // drive(7.5, 1500);
@@ -585,47 +578,53 @@ void auton() // A function named "auton", in this case, any code in the brackets
   // wait(0.5, sec);
   // drive(0, 1500);
 
-  // autonSelector.stopSelection();
-  // autonSelector.executeSelectedAuton();
+
+
+
+
+
+
+
+
   ///////////////////////////////////////////////////////////////////////
   ////LEFT QUALS AUTON//////////
-  // outake.setStopping(coast);
-  // RollerIntake.setStopping(coast);
+  outake.setStopping(coast);
+  RollerIntake.setStopping(coast);
 
-  // colorsort = task(Colorcontrols);
-  // jamtask = task(jamcontrols);
-  // targetColor = vex::color::blue;
-  // L1.setVelocity(600, rpm);
-  // L2.setVelocity(600, rpm);
-  // L3.setVelocity(600, rpm);
-  // R6.setVelocity(600, rpm);
-  // R7.setVelocity(600, rpm);
-  // R8.setVelocity(600, rpm);
-  // Out.setVelocity(200, rpm);
-  // Take.setVelocity(200, rpm);
-  // outake.setVelocity(200, rpm);
-  // RollerIntake.setVelocity(600, rpm);
+  colorsort = task(Colorcontrols);
+  jamtask = task(jamcontrols);
+  targetColor = vex::color::blue;
+  L1.setVelocity(600, rpm);
+  L2.setVelocity(600, rpm);
+  L3.setVelocity(600, rpm);
+  R6.setVelocity(600, rpm);
+  R7.setVelocity(600, rpm);
+  R8.setVelocity(600, rpm);
+  Out.setVelocity(200, rpm);
+  Take.setVelocity(200, rpm);
+  outake.setVelocity(200, rpm);
+  RollerIntake.setVelocity(600, rpm);
 
-  // RollerIntake.spin(forward);
-  // drive(19, 1500);
-  // drive(8.5, 1500);
-  // wait(0.2, sec);
-  // turn(240);
-  // wait(0.2, sec);
-  // drive(-12.5, 1500);
-  // outake.spin(forward);
-  // wait(1, sec);
-  // outake.stop();
-  // drive(46.5, 1800);
-  // turn(195);
-  // Loader.set(true);
-  // Lifter.set(true);
-  // wait(0.2, sec);
-  // drive(16, 1700);
-  // wait(0.4, sec);
-  // drive(-10, 1500);
-  // drive(-20, 1500);
-  // outake.spin(forward);
+  RollerIntake.spin(forward);
+  drive(19, 1500);
+  drive(8.5, 1500);
+  wait(0.2, sec);
+  turn(240);
+  wait(0.2, sec);
+  drive(-12.5, 1500);
+  outake.spin(forward);
+  wait(1, sec);
+  outake.stop();
+  drive(46.5, 1800);
+  turn(195);
+  Loader.set(true);
+  Lifter.set(true);
+  wait(0.2, sec);
+  drive(16, 1700);
+  wait(0.4, sec);
+  drive(-10, 1500);
+  drive(-20, 1500);
+  outake.spin(forward);
 
   //////////////////////////////////////////////////////////////////
 
@@ -673,7 +672,9 @@ void auton() // A function named "auton", in this case, any code in the brackets
 
   ////////////////////////////////////////////////
 
-  // good elims left auton
+  ///
+  //
+  // REALY REALYY good elims left auton
   // outake.setStopping(coast);
   // RollerIntake.setStopping(coast);
 
