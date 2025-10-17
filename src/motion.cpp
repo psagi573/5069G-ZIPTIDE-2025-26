@@ -79,13 +79,43 @@ double minVolt(double v)
     return v;
 }
 
+
+float getAveragePosition() {
+    // Get positions from all motors (in degrees)
+    float left1_pos = L1.position(turns);
+    float left2_pos = L2.position(turns);
+    float left3_pos = L3.position(turns);
+    float right1_pos = R6.position(turns);
+    float right2_pos = R7.position(turns);
+    float right3_pos = R8.position(turns);
+
+    // Calculate average position
+    float avg_position = (left1_pos + left2_pos + left3_pos + 
+                         right1_pos + right2_pos + right3_pos) / 6.0;
+    
+    return avg_position;
+}
+
+// Function to reset all encoders
+void resetAllEncoders() {
+    L1.resetPosition();
+    L2.resetPosition();
+    L3.resetPosition();
+    R6.resetPosition();
+    R7.resetPosition();
+    R8.resetPosition();
+}
+
+
+
 void drive(double distInches, double timeout)
 {
     distPID.reset();
     double startX = getPose().x;
     double startY = getPose().y;
+    resetAllEncoders();
     double target = distInches;
-    double start = Yaxis.position(turns) * 2; // in inches
+    double start = getAveragePosition();
     double lastError = 0;
     int elapsed = 0;
 

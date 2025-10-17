@@ -116,6 +116,8 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
   }
 }
 
+
+
 int IntakeControls()
 {
   Roller.stop();
@@ -169,12 +171,28 @@ int storeControls()
   {
     if (Controller1.ButtonL2.pressing())
     {
-      Intaker.spin(forward, 100, rpm);
+      RollerIntake.spin(forward, 100, rpm);
+      middle.spin(forward);
       waitUntil(!Controller1.ButtonL2.pressing()); // keeps it spinning until the user let go of L1
-      Intaker.stop();
-    }
+      RollerIntake.stop();
+      middle.stop();    }
     wait(10, msec);
   }
+}
+
+
+int rageControls()
+{
+  while (true)
+  {
+    if (Controller1.ButtonUp.pressing())
+    {
+      RollerIntake.spin(forward);
+      waitUntil(!Controller1.ButtonUp.pressing()); // keeps it spinning until the user let go of L1
+      RollerIntake.stop();  
+    wait(10, msec);
+  }
+}
 }
 
 int trapcontrols()
@@ -221,7 +239,8 @@ void usercontrol() // A function named "usercontrol", in this case, any code in 
   task d(middleControls);
   task e(storeControls);
   task f(trapcontrols);
-  task g(jamtask);
+  task g(rageControls);
+  task h(jamtask);
 }
 
 bool Trap = false;                        // whether to enable sorting
