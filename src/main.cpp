@@ -525,16 +525,14 @@ void pre_auton(void)
 void auton() // A function named "auton", in this case, any code in the brackets will run once (unless in a loop) when its autonomous
 {
 
-/////Skills///////
+  /////Skills///////
 
   // outake.setStopping(coast);
   // RollerIntake.setStopping(coast);
 
-  // colorsort = task(Colorcontrols);
-  // jamtask = task(jamcontrols);
-  // targetColor = vex::color::blue;
-  // jam = true;
-  // Trap = true;
+  // // colorsort = task(Colorcontrols);
+  // // jamtask = task(jamcontrols);
+  // // targetColor = vex::color::blue;
   // L1.setVelocity(600, rpm);
   // L2.setVelocity(600, rpm);
   // L3.setVelocity(600, rpm);
@@ -547,53 +545,59 @@ void auton() // A function named "auton", in this case, any code in the brackets
   // RollerIntake.setVelocity(600, rpm);
 
   // RollerIntake.spin(forward);
-  // drive(19, 1500);
-  // vel = false;
-  // drive(7.5, 1500);
-  // turn(250);
-  // Loader.set(true);
-  // wait(0.3,sec);
-  // drive(32.5, 1500);
-  // wait(0.3, sec);
-  // turn(200);
-  // Lifter.set(true);
-  // wait(0.2, sec);
-  // drive(17.5, 1300);
-  // wait(3,sec);
-  // drive(-7,1500);
-  // drive(7, 1500);
-  // wait(3, sec);
-  // drive(-16, 1100);
-  // //wait(0.1, sec);
-  // //turn(195);
-  // drive(-15, 1000);
-  // outake.spin(forward);
-  // wait(9,sec);
-  // Loader.set(false);
-  // drive(10,1500);
-  // turn(155);
-  // drive(29,1500);
-  // turn(110);
-  // drive(50,1500);
+  // drive(18, 1500);
+  // drive(8.5, 1500);
   // wait(0.5, sec);
-  // drive(0, 1500);
+  // turn(245);
+  // wait(0.2, sec);
+  // drive(36.5, 1800);
+  // turn(200);
+  // Loader.set(true);
+  // Lifter.set(true);
+  // wait(1, sec);
+  // drive(14, 1700);
+  // wait(0.8, sec);
+  // drive(-8, 1500);
+  // drive(11, 1500);
+  // wait(0.8,sec);
+  // drive(-10, 1500);
+  // turn(205);
+  // drive(-20, 1500);
+  // outake.spin(forward);
+  // wait(7,sec);
+  // outake.stop();
+  // drive(13,1500);
+  // turn(290);
+  // RollerIntake.spin(reverse);
+  // drive(-24, 1500);
+  // turn(298);
+  // drive(-24, 1500);
+  // turn(298);
+  // drive(-47, 1500);
+  // RollerIntake.spin(forward);
+  // turn(205);
+  // drive(23,1500);
+  // wait(0.8,sec);
+  // drive(-10,1500);
+  // drive(13,1500);
+  // wait(0.8,sec);
+  // drive(-10,1500);
+  // turn(205);
+  // drive(-20,1500);
+  // outake.spin(forward);
 
-
-
-
-
-
-
-
+  // drive(40,1500);
+  // outake.stop();
+  // turn(90);
 
   ///////////////////////////////////////////////////////////////////////
   ////LEFT QUALS AUTON//////////
   outake.setStopping(coast);
   RollerIntake.setStopping(coast);
 
-  colorsort = task(Colorcontrols);
-  jamtask = task(jamcontrols);
-  targetColor = vex::color::blue;
+  // colorsort = task(Colorcontrols);
+  // jamtask = task(jamcontrols);
+  // targetColor = vex::color::blue;
   L1.setVelocity(600, rpm);
   L2.setVelocity(600, rpm);
   L3.setVelocity(600, rpm);
@@ -609,21 +613,22 @@ void auton() // A function named "auton", in this case, any code in the brackets
   drive(19, 1500);
   drive(8.5, 1500);
   wait(0.2, sec);
-  turn(240);
+  turn(245);
   wait(0.2, sec);
-  drive(-12.5, 1500);
+  drive(-13, 1500);
   outake.spin(forward);
-  wait(1, sec);
-  outake.stop();
-  drive(46.5, 1800);
-  turn(195);
-  Loader.set(true);
+  wait(1.5, sec);
   Lifter.set(true);
+  outake.stop();
+  drive(50, 1800);
+  turn(197);
+  Loader.set(true);
   wait(0.2, sec);
-  drive(16, 1700);
-  wait(0.4, sec);
+  drive(14, 1000);
+  wait(0.2, sec);
   drive(-10, 1500);
-  drive(-20, 1500);
+  turn(208);
+  drive(-23, 1500);
   outake.spin(forward);
 
   //////////////////////////////////////////////////////////////////
@@ -632,11 +637,11 @@ void auton() // A function named "auton", in this case, any code in the brackets
   // outake.setStopping(coast);
   // RollerIntake.setStopping(coast);
 
-  // colorsort = task(Colorcontrols);
-  // jamtask = task(jamcontrols);
-  // targetColor = vex::color::blue;
-  // jam = true;
-  // Trap = false;
+  // // colorsort = task(Colorcontrols);
+  // // jamtask = task(jamcontrols);
+  // // targetColor = vex::color::blue;
+  // // jam = true;
+  // // Trap = false;
   // L1.setVelocity(600, rpm);
   // L2.setVelocity(600, rpm);
   // L3.setVelocity(600, rpm);
@@ -667,8 +672,8 @@ void auton() // A function named "auton", in this case, any code in the brackets
   // //turn(195);
   // drive(-15, 1000);
   // outake.spin(forward);
-  // wait(3,sec);
-  // drive(27,1500);
+  // // wait(3,sec);
+  // // drive(27,1500);
 
   ////////////////////////////////////////////////
 
@@ -770,7 +775,7 @@ int main()
 
   while (true)
   {
-    //Get raw encoder values
+    // Get raw encoder values
     double xEnc = Xaxis.position(turns);
     double yEnc = Yaxis.position(turns);
 

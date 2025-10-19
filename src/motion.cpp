@@ -79,13 +79,36 @@ double minVolt(double v)
     return v;
 }
 
+
+const float WHEEL_CIRCUMFERENCE = 3.1416 * 3.15; // ~8.639 inches
+const float INCHES_PER_MOTOR_TURN = WHEEL_CIRCUMFERENCE / 1.6; // ~5.399 inches
+
+float getAverageDistance() {
+    // Get positions from all motors (in turns/rotations)
+    float left1_pos = L1.position(turns);
+    float left2_pos = L2.position(turns);
+    float left3_pos = L3.position(turns);
+    float right1_pos = R6.position(turns);
+    float right2_pos = R7.position(turns);
+    float right3_pos = R8.position(turns);
+
+    // Calculate average motor rotations
+    float avg_rotations = (left1_pos + left2_pos + left3_pos + 
+                          right1_pos + right2_pos + right3_pos) / 6.0;
+    
+    // Convert average motor rotations to inches traveled
+    float distance_inches = avg_rotations * INCHES_PER_MOTOR_TURN;
+    
+    return distance_inches;
+}
+
 void drive(double distInches, double timeout)
 {
     distPID.reset();
     double startX = getPose().x;
     double startY = getPose().y;
     double target = distInches;
-    double start = Yaxis.position(turns) * 2; // in inches
+    double start = getAverageDistance(); // in inches
     double lastError = 0;
     int elapsed = 0;
 
@@ -95,7 +118,7 @@ void drive(double distInches, double timeout)
         Pose pose = getPose();
         double dx = pose.x - startX;
         double dy = pose.y - startY;
-        double dstart = Yaxis.position(turns) * 2 - start;
+        double dstart = getAverageDistance() - start;
         double traveled = dstart;
         if (distInches < 0)
         {
@@ -131,7 +154,7 @@ void turn(double targetHeading)
     while (true)
     {
         Pose pose = getPose();
-        double heading = pose.theta;
+        double heading = inertial19.heading();
 
         // FIXED: Proper angle difference calculation
         double remaining = targetHeading - heading;
