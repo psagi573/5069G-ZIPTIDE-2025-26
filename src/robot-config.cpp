@@ -25,6 +25,7 @@ inertial inertial19 = inertial(PORT11);
 digital_out Lifter = digital_out(Brain.ThreeWirePort.H);
 digital_out Trapdoor = digital_out(Brain.ThreeWirePort.G);
 digital_out Loader = digital_out(Brain.ThreeWirePort.F);
+digital_out Triangle = digital_out(Brain.ThreeWirePort.A);
 optical Color = optical(PORT4);
 
 // VEXcode generated functions

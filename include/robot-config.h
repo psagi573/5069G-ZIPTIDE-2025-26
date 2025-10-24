@@ -17,6 +17,7 @@ extern controller Controller2;
 extern digital_out Lifter;
 extern digital_out Loader;
 extern digital_out Trapdoor;
+extern digital_out Triangle;
 extern motor Out;
 extern motor Take;
 extern motor RollerIntake;

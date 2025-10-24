@@ -236,11 +236,15 @@ int LoaderControls()
 
       if (Loader1)
       {
+        Triangle.set(false);
+        wait(100,msec);
         Loader.set(true);
       }
       else
       {
         Loader.set(false);
+        wait(100,msec);
+        Triangle.set(true);
       }
     }
   }
@@ -279,6 +283,11 @@ int trapcontrols()
     }
   }
 }
+
+
+
+
+
 task colorsort;
 task jamtask;
 void usercontrol() // A function named "usercontrol", in this case, any code in the brackets will run once (unless in a loop) when its driver control
