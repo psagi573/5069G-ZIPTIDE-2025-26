@@ -9,6 +9,7 @@ extern motor R6;
 extern rotation Yaxis;
 extern rotation Xaxis;
 extern inertial inertial19;
+extern inertial inertial6;
 extern motor L2;
 extern motor L3;
 extern motor R7;

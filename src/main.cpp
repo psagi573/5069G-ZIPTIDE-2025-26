@@ -41,11 +41,6 @@
 // Ensure 'autons' and 'selectedAuton' are declared as extern if defined elsewhere
 
 using namespace vex; // you need it so vex stuff works
-motor_group R = motor_group(R6, R7, R8);
-motor_group L = motor_group(L1, L2, L3);
-drivetrain Drivetrain = drivetrain(R, L);
-motor_group outake = motor_group(Out, Take);
-motor_group scorer = motor_group(Out, Take, RollerIntake);
 
 competition Competition; // you need it so it works at a competition
 // Global auton selector
@@ -110,8 +105,8 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
     int rightVolt = tovolt(forwards - turning);
 
     // // Spin motors
-    L.spin(forward, leftVolt, volt);
-    R.spin(forward, rightVolt, volt);
+    LeftDrive.spin(forward, leftVolt, volt);
+    RightDrive.spin(forward, rightVolt, volt);
     wait(10, msec);
   }
 }
@@ -516,11 +511,12 @@ void pre_auton(void)
 {
   vexcodeInit();
   inertial19.calibrate();
-  while (inertial19.isCalibrating())
+  inertial6.calibrate();
+  while (inertial19.isCalibrating() || inertial6.isCalibrating())
   {
     wait(50, msec);
   }
-
+  Odom::start(LeftDrive, RightDrive, inertial19, inertial6);
   //startOdom(Xaxis, Yaxis, inertial19);
 
   // autonSelector.initialize();
@@ -783,29 +779,25 @@ int main()
 
   while (true)
   {
-    // Get raw encoder values
-    double xEnc = Xaxis.position(turns);
-    double yEnc = Yaxis.position(turns);
 
     double heading = inertial19.rotation();
 
     // Get computed position from your odometry
-    //Pose currentPose = getPose();
+    Pose currentPose = Odom::getPose();
 
     Brain.Screen.clearScreen();
     Brain.Screen.setCursor(1, 1);
-    Brain.Screen.print("X Encoder: %.2f", xEnc);
-    Brain.Screen.setCursor(2, 1);
-    Brain.Screen.print("Y Encoder: %.2f", yEnc);
-    Brain.Screen.print("Y inch: %.2f", yEnc * 2);
-    Brain.Screen.setCursor(3, 1);
     Brain.Screen.print("Heading: %.2f", heading);
-    Brain.Screen.setCursor(4, 1);
+    Brain.Screen.setCursor(2, 1);
     Brain.Screen.print("Pose X: %.2f", currentPose.x);
-    Brain.Screen.setCursor(5, 1);
+    Brain.Screen.setCursor(3, 1);
     Brain.Screen.print("Pose Y: %.2f", currentPose.y);
-    Brain.Screen.setCursor(6, 1);
+    Brain.Screen.setCursor(4, 1);
     Brain.Screen.print("Pose Theta: %.2f", currentPose.theta);
+    Brain.Screen.setCursor(5, 1);
+    Brain.Screen.print("Heading 1: %.2f", inertial19.heading());
+    Brain.Screen.setCursor(6, 1);
+    Brain.Screen.print("Heading 2: %.2f", inertial6.heading());
 
     Controller1.Screen.clearLine(0);
     Controller1.Screen.setCursor(1, 1);

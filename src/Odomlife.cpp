@@ -55,7 +55,7 @@ int odomTask() {
         double currLeftTurns = leftDrive->position(turns);
         double currRightTurns = rightDrive->position(turns);
         
-        // 🚨 DUAL IMU STEP: Get raw heading from both and average them
+        //DUAL IMU STEP: Get raw heading from both and average them
         double imu1Deg = imuSensor1->rotation();
         double imu2Deg = imuSensor2->rotation();
         double currThetaDegRaw = (imu1Deg + imu2Deg) / 2.0; // The NEW primary raw heading
@@ -145,23 +145,6 @@ void start(vex::motor_group& left, vex::motor_group& right, vex::inertial& imu1,
     rightDrive = &right;
     imuSensor1 = &imu1;
     imuSensor2 = &imu2;
-
-    if (!imuSensor1->installed() || !imuSensor2->installed()) {
-        Brain.Screen.print("ODOM ERROR: IMU(s) NOT DETECTED! Check ports.");
-        return;
-    }
-
-    // Calibrate BOTH IMUs
-    Brain.Screen.print("Calibrating BOTH IMUs... DO NOT TOUCH ROBOT");
-    imuSensor1->calibrate();
-    imuSensor2->calibrate();
-    
-    // Wait for both to finish
-    while (imuSensor1->isCalibrating() || imuSensor2->isCalibrating()) {
-        vex::wait(100, msec);
-    }
-    Brain.Screen.clearScreen();
-    Brain.Screen.setCursor(1,1);
 
     // Reset all sensor positions and the pose
     setPose(0.0, 0.0, 0.0);

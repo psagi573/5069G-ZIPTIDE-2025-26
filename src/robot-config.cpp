@@ -22,6 +22,7 @@ motor RollerIntake = motor(PORT10, ratio6_1, false);
 rotation Yaxis = rotation(PORT15, false);
 rotation Xaxis = rotation(PORT16, true);
 inertial inertial19 = inertial(PORT11);
+inertial inertial6 = inertial(PORT6);
 digital_out Lifter = digital_out(Brain.ThreeWirePort.H);
 digital_out Trapdoor = digital_out(Brain.ThreeWirePort.G);
 digital_out Loader = digital_out(Brain.ThreeWirePort.F);
