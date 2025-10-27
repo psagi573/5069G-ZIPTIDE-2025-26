@@ -22,6 +22,11 @@ extern motor Out;
 extern motor Take;
 extern motor RollerIntake;
 extern optical Color;
+extern motor_group LeftDrive;
+extern motor_group RightDrive;
+extern drivetrain Drivetrain;
+extern motor_group outake;
+extern motor_group scorer;
 
 /**
  * Used to initialize code/tasks/devices added using tools in VEXcode Pro.

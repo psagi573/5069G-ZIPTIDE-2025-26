@@ -36,7 +36,6 @@
 #include "odometry.h"
 #include "motion.h"
 #include "profile.h"
-#include "autonSelector.h"
 #include <string>
 
 // Ensure 'autons' and 'selectedAuton' are declared as extern if defined elsewhere
@@ -511,7 +510,7 @@ int jamcontrols()
 //   outake.spin(forward);
 // }
 
-CompetitionAutonSelector autonSelector;
+
 
 void pre_auton(void)
 {
@@ -522,7 +521,7 @@ void pre_auton(void)
     wait(50, msec);
   }
 
-  startOdom(Xaxis, Yaxis, inertial19);
+  //startOdom(Xaxis, Yaxis, inertial19);
 
   // autonSelector.initialize();
   //   while (!Competition.isAutonomous() && !Competition.isDriverControl()) {
@@ -791,7 +790,7 @@ int main()
     double heading = inertial19.rotation();
 
     // Get computed position from your odometry
-    Pose currentPose = getPose();
+    //Pose currentPose = getPose();
 
     Brain.Screen.clearScreen();
     Brain.Screen.setCursor(1, 1);

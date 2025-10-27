@@ -27,6 +27,11 @@ digital_out Trapdoor = digital_out(Brain.ThreeWirePort.G);
 digital_out Loader = digital_out(Brain.ThreeWirePort.F);
 digital_out Triangle = digital_out(Brain.ThreeWirePort.A);
 optical Color = optical(PORT4);
+motor_group LeftDrive = motor_group(L1, L2, L3);
+motor_group RightDrive = motor_group(R6, R7, R8);
+drivetrain Drivetrain = drivetrain(RightDrive, LeftDrive);
+motor_group outake = motor_group(Out, Take);
+motor_group scorer = motor_group(Out, Take, RollerIntake);
 
 // VEXcode generated functions
 // define variable for remote controller enable/disable
