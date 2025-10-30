@@ -4,7 +4,6 @@
 #include "robot-config.h"
 #include <cmath>
 #include <algorithm>
-#include "utils.h"
 #include "odometry.h"
 
 using namespace vex;
@@ -20,14 +19,27 @@ PID fastTurnPID(0.043, 0.0001, 0.39);
 PID arcPID(0.15, 0, 0);
 PID sweepPID(0.04, 0, 0.5);
 
-PID drivePID(0.05, 0, 0.8);
-PID headingPID(0.03, 0.0001, 0.1); // Added I and D terms for better heading control
+PID drivePID(0.05, 0, 0.6);
+PID headingPID(0.043, 0.0001, 0.39);
 
 const double maxVelDefault = 60; // max linear speed in inches/sec
 const double accelDefault = 30;  // acceleration in inches/sec^2
 
 const double maxVelshort = 60; // max linear speed in inches/sec
 const double accelshort = 20;  // acceleration in inches/sec^2
+
+
+
+template <typename T>
+T clamp(T value, T minVal, T maxVal)
+{
+    if (value < minVal)
+        return minVal;
+    if (value > maxVal)
+        return maxVal;
+    return value;
+}
+
 
 // Set left and right motor voltages
 void setDrive(double left, double right)
@@ -79,9 +91,12 @@ double minVolt(double v)
     return v;
 }
 
+const float WHEEL_CIRCUMFERENCE = 3.1416 * 3.15;               // ~8.639 inches
+const float INCHES_PER_MOTOR_TURN = WHEEL_CIRCUMFERENCE / 1.6; // ~5.399 inches
 
-float getAveragePosition() {
-    // Get positions from all motors (in degrees)
+float getAverageDistance()
+{
+    // Get positions from all motors (in turns/rotations)
     float left1_pos = L1.position(turns);
     float left2_pos = L2.position(turns);
     float left3_pos = L3.position(turns);
@@ -89,43 +104,30 @@ float getAveragePosition() {
     float right2_pos = R7.position(turns);
     float right3_pos = R8.position(turns);
 
-    // Calculate average position
-    float avg_position = (left1_pos + left2_pos + left3_pos + 
-                         right1_pos + right2_pos + right3_pos) / 6.0;
-    
-    return avg_position;
+    // Calculate average motor rotations
+    float avg_rotations = (left1_pos + left2_pos + left3_pos +
+                           right1_pos + right2_pos + right3_pos) /
+                          6.0;
+
+    // Convert average motor rotations to inches traveled
+    float distance_inches = avg_rotations * INCHES_PER_MOTOR_TURN;
+
+    return distance_inches;
 }
-
-// Function to reset all encoders
-void resetAllEncoders() {
-    L1.resetPosition();
-    L2.resetPosition();
-    L3.resetPosition();
-    R6.resetPosition();
-    R7.resetPosition();
-    R8.resetPosition();
-}
-
-
 
 void drive(double distInches, double timeout)
 {
     distPID.reset();
-    double startX = getPose().x;
-    double startY = getPose().y;
-    resetAllEncoders();
     double target = distInches;
-    double start = getAveragePosition();
+    double start = getAverageDistance(); // in inches
     double lastError = 0;
     int elapsed = 0;
 
     while (true)
     {
         // Current pose and distance traveled
-        Pose pose = getPose();
-        double dx = pose.x - startX;
-        double dy = pose.y - startY;
-        double dstart = Yaxis.position(turns) * 2 - start;
+        Pose pose = Odom::getPose();
+        double dstart = getAverageDistance() - start;
         double traveled = dstart;
         if (distInches < 0)
         {
@@ -151,7 +153,6 @@ void drive(double distInches, double timeout)
     stops();
 }
 
-
 void turn(double targetHeading)
 {
     fastTurnPID.reset();
@@ -160,13 +161,15 @@ void turn(double targetHeading)
 
     while (true)
     {
-        Pose pose = getPose();
-        double heading = pose.theta;
+        Pose pose = Odom::getPose();
+        double heading = inertial19.heading();
 
         // FIXED: Proper angle difference calculation
         double remaining = targetHeading - heading;
-        while (remaining > 180) remaining -= 360;
-        while (remaining < -180) remaining += 360;
+        while (remaining > 180)
+            remaining -= 360;
+        while (remaining < -180)
+            remaining += 360;
 
         // Use the normalized remaining angle for PID
         double turnOutput = fastTurnPID.compute(targetHeading, heading, true);
@@ -206,7 +209,7 @@ void arc(double radiusInches, double angleDeg)
     double absRadius = fabs(radiusInches);
 
     double arcLength = 2.0 * M_PI * absRadius * (fabs(angleDeg) / 360.0);
-    Pose startPose = getPose();
+    Pose startPose = Odom::getPose();
 
     // Calculate target heading and normalize to [-180, 180]
     double targetHeading = startPose.theta + angleDeg;
@@ -222,7 +225,7 @@ void arc(double radiusInches, double angleDeg)
 
     while (true)
     {
-        Pose pose = getPose();
+        Pose pose = Odom::getPose();
 
         // Calculate traveled distance as Euclidean distance
         double dx = pose.x - startPose.x;
@@ -253,11 +256,14 @@ void arc(double radiusInches, double angleDeg)
         double rightVolt = linearOut;
 
         // FIXED: Correct arc direction logic
-        if (arcLeft) {
+        if (arcLeft)
+        {
             // Left arc: right wheel is inner (slower), left wheel is outer (faster)
             rightVolt *= speedRatio;
-        } else {
-            // Right arc: left wheel is inner (slower), right wheel is outer (faster)  
+        }
+        else
+        {
+            // Right arc: left wheel is inner (slower), right wheel is outer (faster)
             leftVolt *= speedRatio;
         }
 
@@ -279,9 +285,9 @@ void Sweep(double targetAngleDeg, bool left)
     while (true)
     {
         // Current pose and heading
-        Pose pose = getPose();
+        Pose pose = Odom::getPose();
         double heading = pose.theta;
-        
+
         // PID output for turning
         double turnOutput = sweepPID.compute(targetAngleDeg, heading, true);
 
@@ -290,7 +296,7 @@ void Sweep(double targetAngleDeg, bool left)
             remaining += 360;
         if (remaining > 180)
             remaining -= 360;
-            
+
         // Exit conditions
         if (fabs(remaining) < 1.0 || elapsedTime >= timeout)
             break;
@@ -312,205 +318,114 @@ void Sweep(double targetAngleDeg, bool left)
     stops();
 }
 
-// Drive to a target (x,y) using odom, motion profiling, and PID
-void driveTo(double targetX, double targetY)
+
+
+void moveToPose(double targetX, double targetY, double finalHeading, double timeout)
 {
     drivePID.reset();
     headingPID.reset();
 
-    Pose start = getPose();
-    double dx = targetX - start.x;
-    double dy = targetY - start.y;
-    double distance = sqrt(dx * dx + dy * dy);
-    distance = distance - 2; // Compensate for overshoot
+    Pose start = Odom::getPose();
+    double dxStart = targetX - start.x;
+    double dyStart = targetY - start.y;
+    double initialDistance = sqrt(dxStart * dxStart + dyStart * dyStart);
 
-    double targetHeading = atan2(dy, dx) * 180.0 / M_PI;
-    if (targetHeading < 0)
-        targetHeading += 360;
+    // Calculate the straight-line heading from start to target
+    double targetHeadingToPoint = atan2(dyStart, dxStart) * 180.0 / M_PI;
+    if (targetHeadingToPoint < 0) targetHeadingToPoint += 360;
 
     double traveled = 0;
-    double lastRemaining = distance;
+    double lastRemaining = initialDistance;
     int elapsed = 0;
-    const int timeout = 2000; // safety timeout
-
+    
+    // Tracking for smoother turn correction
     double lastTurnCorrection = 0;
-    const double alpha = 0.1; // smoothing factor
+    const double ALPHA = 0.2; // Smoothing factor for exponential moving average
+
+    // Phase tracking
+    const double FINAL_TURN_RADIUS = 5.0; // Start transitioning to final angle when this close
+    bool performingFinalTurn = false;
 
     while (true)
     {
-        Pose pose = getPose();
+        Pose pose = Odom::getPose();
 
-        // Distance traveled from start
-        double dxt = pose.x - start.x;
-        double dyt = pose.y - start.y;
-        traveled = sqrt(dxt * dxt + dyt * dyt);
-
-        double remaining = distance - traveled;
-        double direction = (remaining >= 0) ? 1.0 : -1.0;
-
-        // Heading error normalized to [-180, 180]
-        double headingError = targetHeading - pose.theta;
-        while (headingError > 180)
-            headingError -= 360;
-        while (headingError < -180)
-            headingError += 360;
-
-        // FIXED: More robust exit condition
-        bool stoppedMoving = fabs(remaining - lastRemaining) < 0.02;
-        bool closeToTarget = fabs(remaining) < 0.3;
-        bool timedOut = elapsed > timeout;
-
-        if ((stoppedMoving && closeToTarget) || timedOut)
-            break;
-
-        // Feedback PID for distance
-        double driveOutput = drivePID.compute(distance, traveled);
-
-        // Heading correction (PID controller)
-        double turnCorrection = headingPID.compute(targetHeading, pose.theta, true);
-
-        // Scale down turn correction to reduce influence
-        turnCorrection *= 0.2;
-
-        // Clamp max turn correction to prevent sudden large turns
-        const double maxTurnCorrection = 0.3;
-        if (turnCorrection > maxTurnCorrection)
-            turnCorrection = maxTurnCorrection;
-        else if (turnCorrection < -maxTurnCorrection)
-            turnCorrection = -maxTurnCorrection;
-
-        // Smooth turn correction using exponential moving average
-        turnCorrection = alpha * turnCorrection + (1 - alpha) * lastTurnCorrection;
-        lastTurnCorrection = turnCorrection;
-
-        // Disable turn correction when close to target or aligned
-        if (fabs(headingError) < 2.0 || fabs(remaining) < 5.0)
-            turnCorrection = 0;
-
-        driveOutput = clamp(driveOutput, -1.0, 1.0);
+        // 1. Distance Calculation
+        double dx = targetX - pose.x;
+        double dy = targetY - pose.y;
+        double remainingDistance = sqrt(dx * dx + dy * dy);
         
-        // FIXED: Apply turn correction to motor voltages
-        double leftVolt = (driveOutput - turnCorrection) * 12.0;
-        double rightVolt = (driveOutput + turnCorrection) * 12.0;
+        traveled = initialDistance - remainingDistance; // Distance traveled
 
-        leftVolt = minVolt(leftVolt);
-        rightVolt = minVolt(rightVolt);
-
-        setDrive(leftVolt, rightVolt);
-
-        lastRemaining = remaining;
-        elapsed += 10;
-        wait(10, msec);
-    }
-
-    stops();
-}
-
-// NEW FUNCTION: Advanced moveTo with optional final heading
-void moveTo(double targetX, double targetY, double finalHeading, double maxVelocity, double acceleration)
-{
-    drivePID.reset();
-    headingPID.reset();
-    
-    Pose start = getPose();
-    double dx = targetX - start.x;
-    double dy = targetY - start.y;
-    double distance = sqrt(dx * dx + dy * dy);
-    
-    // Calculate initial target heading (point towards target)
-    double initialTargetHeading = atan2(dy, dx) * 180.0 / M_PI;
-    if (initialTargetHeading < 0) initialTargetHeading += 360;
-    
-    // Use provided max velocity and acceleration or defaults
-    double maxVel = (maxVelocity > 0) ? maxVelocity : maxVelDefault;
-    double accel = (acceleration > 0) ? acceleration : accelDefault;
-    
-    // Create motion profile
-    Profile profile(maxVel, accel);
-    
-    double traveled = 0;
-    int elapsed = 0;
-    const int timeout = 3000; // Longer timeout for moveTo
-    
-    // Phase tracking: 0=driving to point, 1=turning to final heading
-    int phase = 0;
-    double phaseSwitchDistance = 3.0; // Switch to turning when this close to target
-    
-    while (true)
-    {
-        Pose pose = getPose();
-        
-        // Distance traveled from start
-        double dxt = pose.x - start.x;
-        double dyt = pose.y - start.y;
-        traveled = sqrt(dxt * dxt + dyt * dyt);
-        double remaining = distance - traveled;
-        
-        // Phase switching logic
-        if (phase == 0 && remaining < phaseSwitchDistance) {
-            phase = 1; // Switch to final heading adjustment
+        // 2. Heading Target Determination
+        double currentTargetHeading;
+        if (finalHeading == -1.0 || remainingDistance > FINAL_TURN_RADIUS)
+        {
+            // Always face the point while driving (Phase 0: Driving)
+            currentTargetHeading = atan2(dy, dx) * 180.0 / M_PI;
+            if (currentTargetHeading < 0) currentTargetHeading += 360;
         }
+        else
+        {
+            // Transition to the final desired heading (Phase 1: Final Approach)
+            currentTargetHeading = finalHeading;
+            performingFinalTurn = true;
+        }
+
+        // 3. Distance PID (Linear Speed)
+        // Use initial distance for PID target, use traveled for current
+        double driveOutput = drivePID.compute(initialDistance, traveled, false);
+        // Clamp overall drive power (e.g., to prevent over-acceleration)
+        driveOutput = clamp(driveOutput, -1.0, 1.0); 
+
+        // 4. Heading PID (Correction)
+        double turnCorrection = headingPID.compute(currentTargetHeading, pose.theta, true);
         
-        double targetHeading = (phase == 0) ? initialTargetHeading : finalHeading;
+        // Scale down turn correction to prevent oversteer (TUNE THIS)
+        turnCorrection *= 0.35; 
         
-        // Heading error normalized to [-180, 180]
-        double headingError = targetHeading - pose.theta;
-        while (headingError > 180) headingError -= 360;
-        while (headingError < -180) headingError += 360;
+        // Smooth turn correction using exponential moving average
+        turnCorrection = ALPHA * turnCorrection + (1 - ALPHA) * lastTurnCorrection;
+        lastTurnCorrection = turnCorrection;
         
-        // Motion profile output
-        double profileOutput = profile.getTargetVelocity(traveled, elapsed, 1);
+        // 5. Apply Voltages
+        // The driveOutput is the forward power, turnCorrection adjusts left/right
+        double leftVolt = (driveOutput - turnCorrection)* 12;
+        double rightVolt = (driveOutput + turnCorrection)* 12;
+
+        setDrive(minVolt(leftVolt), minVolt(rightVolt));
+
+
+        // 6. Exit Conditions
+        bool stoppedMoving = fabs(remainingDistance - lastRemaining) < 0.02; // Check velocity near target
+        bool closeToTarget = remainingDistance < 0.5; // Within 0.5 inches
         
-        // Distance PID for fine adjustment
-        double driveOutput = drivePID.compute(distance, traveled);
+        // Final Heading Check (only relevant if finalHeading was provided)
+        double finalHeadingError = currentTargetHeading - pose.theta;
+        while (finalHeadingError > 180) finalHeadingError -= 360;
+        while (finalHeadingError < -180) finalHeadingError += 360;
+        bool finalHeadingGood = fabs(finalHeadingError) < 2.0;
         
-        // Combine profile and PID (profile dominates during motion, PID for precision)
-        double combinedOutput = (profileOutput * 0.7) + (driveOutput * 0.3);
-        combinedOutput = clamp(combinedOutput, -1.0, 1.0);
-        
-        // Heading correction - more aggressive in phase 1 (final approach)
-        double turnGain = (phase == 0) ? 0.15 : 0.25;
-        double turnCorrection = headingPID.compute(targetHeading, pose.theta, true) * turnGain;
-        turnCorrection = clamp(turnCorrection, -0.4, 0.4);
-        
-        // Apply voltages with turn correction
-        double leftVolt = (combinedOutput - turnCorrection) * 12.0;
-        double rightVolt = (combinedOutput + turnCorrection) * 12.0;
-        
-        leftVolt = minVolt(leftVolt);
-        rightVolt = minVolt(rightVolt);
-        
-        setDrive(leftVolt, rightVolt);
-        
-        // Exit conditions
-        bool positionGood = (phase == 1) && (fabs(remaining) < 0.5);
-        bool headingGood = (fabs(headingError) < 2.0);
         bool timedOut = elapsed > timeout;
-        
-        if ((positionGood && headingGood) || timedOut)
+
+        // If performing final turn, need both position AND heading to be good
+        if (timedOut || (closeToTarget && (performingFinalTurn ? finalHeadingGood : true)))
             break;
         
+        lastRemaining = remainingDistance;
         elapsed += 10;
         wait(10, msec);
     }
-    
+
     stops();
 }
 
-// Overloaded moveTo without final heading (uses point-towards-target)
-void moveTo(double targetX, double targetY, double maxVelocity, double acceleration)
+// Convenience wrapper functions
+void moveToPoint(double targetX, double targetY, double timeout)
 {
-    Pose start = getPose();
-    double dx = targetX - start.x;
-    double dy = targetY - start.y;
-    double finalHeading = atan2(dy, dx) * 180.0 / M_PI;
-    if (finalHeading < 0) finalHeading += 360;
-    
-    moveTo(targetX, targetY, finalHeading, maxVelocity, acceleration);
+    // Drives to X, Y but stops facing the point
+    moveToPose(targetX, targetY, -1.0, timeout); 
 }
 
-// Overloaded moveTo with only position
-void moveTo(double targetX, double targetY)
-{
-    moveTo(targetX, targetY, maxVelDefault, accelDefault);
-}
+
+
