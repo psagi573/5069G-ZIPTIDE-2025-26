@@ -36,17 +36,11 @@
 #include "odometry.h"
 #include "motion.h"
 #include "profile.h"
-#include "autonSelector.h"
 #include <string>
 
 // Ensure 'autons' and 'selectedAuton' are declared as extern if defined elsewhere
 
 using namespace vex; // you need it so vex stuff works
-motor_group R = motor_group(R6, R7, R8);
-motor_group L = motor_group(L1, L2, L3);
-drivetrain Drivetrain = drivetrain(R, L);
-motor_group RollerIntake = motor_group(Roller, Intake);
-motor_group Intaker = motor_group(Roller, Intake, middle);
 
 competition Competition; // you need it so it works at a competition
 // Global auton selector
@@ -56,41 +50,17 @@ float tovolt(float percentage)
   return (percentage * 12.0 / 100.0);
 }
 
-const int JOYSTICK_DEADZONE = 5; // tweak this if needed
-
-int getExpoValue(int joystickValue)
-{
-  int output = 0;
-
-  if (abs(joystickValue) > JOYSTICK_DEADZONE)
-  {
-    int direction = (joystickValue > 0) ? 1 : -1; // forward or backward
-
-    // Exponential curve + linear tweak
-    output = direction * (1.2 * pow(1.05, abs(joystickValue)) - 1.2 + 0.2 * abs(joystickValue));
-
-    // Clamp output to -100 to 100
-    if (output > 100)
-      output = 100;
-    if (output < -100)
-      output = -100;
-  }
-
-  return output;
-}
-
 int DriveTrainControls() // we create a integer function named "DriveTrainControls", later in the code we plan to turnpid this into a Thread that controls the drivetrain
 {
   Roller.stop();
   Intake.stop();
-  middle.stop();
   L1.setStopping(brake);
   L2.setStopping(brake);
   L3.setStopping(brake);
   R6.setStopping(brake);
   R7.setStopping(brake);
   R8.setStopping(brake);
-  Intaker.setStopping(brake);
+  Intake.setStopping(brake);
 
   L1.setVelocity(600, rpm);
   L2.setVelocity(600, rpm);
@@ -98,7 +68,7 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
   R6.setVelocity(600, rpm);
   R7.setVelocity(600, rpm);
   R8.setVelocity(600, rpm);
-  Intaker.setVelocity(600, rpm);
+  Intake.setVelocity(300, rpm);
 
   while (true)
   {
@@ -116,50 +86,47 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
   }
 }
 
-
-
 int IntakeControls()
 {
-  Roller.stop();
   Intake.stop();
   while (true)
   {
 
     if (Controller1.ButtonR1.pressing())
     {
-      Intaker.spin(forward);
+      Trapdoor.set(false);
+      Intake.spin(forward);
       waitUntil(!Controller1.ButtonR1.pressing()); // keeps it spinning until the user let go of R1
-      Intaker.stop();
+      Intake.stop();
     }
     wait(10, msec);
   }
 }
 
-int Intake2Controls()
+int OutakeControls()
 {
   while (true)
   {
     if (Controller1.ButtonR2.pressing())
     {
-      Intaker.spin(reverse);
+      Trapdoor.set(true);
+      Intake.spin(forward);
       waitUntil(!Controller1.ButtonR2.pressing()); // keeps it spinning until the user let go of R2
-      Intaker.stop();
+      Intake.stop();
     }
     wait(10, msec);
   }
 }
 
-int middleControls()
+int ReverseControls()
 {
   while (true)
   {
     if (Controller1.ButtonL1.pressing())
     {
-      middle.spin(reverse);
-      RollerIntake.spin(forward);
+      Intake.spin(reverse);
       waitUntil(!Controller1.ButtonL1.pressing()); // keeps it spinning until the user let go of L1
-      middle.stop();
-      RollerIntake.stop();
+      Intake.stop();
     }
     wait(10, msec);
   }
@@ -171,45 +138,29 @@ int storeControls()
   {
     if (Controller1.ButtonL2.pressing())
     {
-      RollerIntake.spin(forward, 100, rpm);
-      middle.spin(forward);
+      Intake.spin(forward, 100, rpm);
       waitUntil(!Controller1.ButtonL2.pressing()); // keeps it spinning until the user let go of L1
-      RollerIntake.stop();
-      middle.stop();    }
-    wait(10, msec);
+      Intake.stop();
+      wait(10, msec);
+    }
   }
 }
 
-
-int rageControls()
-{
-  while (true)
-  {
-    if (Controller1.ButtonUp.pressing())
-    {
-      RollerIntake.spin(forward);
-      waitUntil(!Controller1.ButtonUp.pressing()); // keeps it spinning until the user let go of L1
-      RollerIntake.stop();  
-    wait(10, msec);
-  }
-}
-}
-
-int trapcontrols()
+int Liftercontrols()
 {
 
-  bool Trapdoor1 = false;
+  bool Lifter1 = true;
   while (true)
   {
     if (Controller1.ButtonY.pressing())
     {
-      if (Trapdoor1)
+      if (Lifter)
       {
-        Trapdoor1 = false;
+        Lifter1 = false;
       }
-      else if (!Trapdoor1)
+      else if (!Lifter)
       {
-        Trapdoor1 = true;
+        Lifter1 = true;
       }
       while (Controller1.ButtonY.pressing())
       {
@@ -217,103 +168,27 @@ int trapcontrols()
         wait(5, msec);
       }
 
-      if (Trapdoor1)
+      if (Lifter1)
       {
-        Trapdoor.set(true);
+        Lifter.set(true);
       }
       else
       {
-        Trapdoor.set(false);
+        Lifter.set(false);
       }
     }
   }
 }
-task colorsort;
-task jamtask;
+
 void usercontrol() // A function named "usercontrol", in this case, any code in the brackets will run once (unless in a loop) when its driver control
 {
-  colorsort.stop();
   task a(DriveTrainControls); // creates a Thread Named "a" that runs the function "DriveTrainControls", This thread controls the drivetrain
   task b(IntakeControls);
-  task c(Intake2Controls);
-  task d(middleControls);
+  task c(OutakeControls);
+  task d(ReverseControls);
   task e(storeControls);
-  task f(trapcontrols);
-  task g(rageControls);
-  task h(jamtask);
-}
+  task f(Liftercontrols);
 
-bool Trap = false;                        // whether to enable sorting
-vex::color targetColor = vex::color::red; // set target color
-
-int Colorcontrols()
-{
-  Color.setLightPower(100, percent);
-
-  while (true)
-  {
-    if (!Trap)
-    {
-      RollerIntake.spin(forward); // keep closed if Trap disabled
-    }
-    else
-    {
-      // Only check if object is nearby
-      if (Color.isNearObject())
-      {
-        // Check if the color matches
-        if (Color.color() == targetColor)
-        {
-          RollerIntake.spin(reverse);
-          task::sleep(100);
-          RollerIntake.spin(forward);
-        }
-        else
-        {
-          RollerIntake.spin(forward);
-        }
-      }
-      else
-      {
-        RollerIntake.spin(forward);
-      }
-
-      wait(20, msec); // small delay to avoid CPU hog
-    }
-  }
-  return 0;
-}
-
-bool jam = false;
-bool vel = false;
-int jamcontrols()
-{
-
-  while (true)
-  {
-    if (!jam)
-    {
-      RollerIntake.stop();
-    }
-
-    if (jam)
-    {
-      RollerIntake.spin(forward);
-      if (vel)
-      {
-        if (RollerIntake.velocity(rpm) < 100)
-        {
-
-          RollerIntake.spin(reverse);
-          task::sleep(100);
-          RollerIntake.spin(forward);
-        }
-      }
-    }
-
-    wait(20, msec); // small delay to avoid CPU hog
-  }
-  return 0;
 }
 
 /*    ___           ___           ___           ___           ___           ___
@@ -450,18 +325,9 @@ int jamcontrols()
 //   outake.spin(forward);
 // }
 
-CompetitionAutonSelector autonSelector;
-
 void pre_auton(void)
 {
   vexcodeInit();
-  inertial19.calibrate();
-  while (inertial19.isCalibrating())
-  {
-    wait(50, msec);
-  }
-
-  startOdom(Xaxis, Yaxis, inertial19);
 
   // autonSelector.initialize();
   //   while (!Competition.isAutonomous() && !Competition.isDriverControl()) {
@@ -475,22 +341,16 @@ void auton() // A function named "auton", in this case, any code in the brackets
 
   // autonSelector.runSelectedAuton();
 
-  RollerIntake.setStopping(coast);
-
-  colorsort = task(Colorcontrols);
-  jamtask = task(jamcontrols);
-  targetColor = vex::color::blue;
-  jam = true;
-  Trap = true;
+  Intake.setStopping(coast);
   L1.setVelocity(600, rpm);
   L2.setVelocity(600, rpm);
   L3.setVelocity(600, rpm);
   R6.setVelocity(600, rpm);
   R7.setVelocity(600, rpm);
   R8.setVelocity(600, rpm);
-  RollerIntake.setVelocity(600, rpm);
+  Intake.setVelocity(600, rpm);
 
-  RollerIntake.spin(forward);
+  Intake.spin(forward);
   // drive(19, 1500);
   // vel = false;
   // drive(7.5, 1500);
@@ -706,23 +566,11 @@ int main()
 
   while (true)
   {
-    // Get raw encoder values
-    double xEnc = Xaxis.position(turns);
-    double yEnc = Yaxis.position(turns);
-
-    double heading = inertial19.rotation();
 
     // Get computed position from your odometry
-    Pose currentPose = getPose();
+    Pose currentPose = Odom::getPose();
 
-    Brain.Screen.clearScreen();
-    Brain.Screen.setCursor(1, 1);
-    Brain.Screen.print("X Encoder: %.2f", xEnc);
-    Brain.Screen.setCursor(2, 1);
-    Brain.Screen.print("Y Encoder: %.2f", yEnc);
-    Brain.Screen.print("Y inch: %.2f", yEnc * 2);
     Brain.Screen.setCursor(3, 1);
-    Brain.Screen.print("Heading: %.2f", heading);
     Brain.Screen.setCursor(4, 1);
     Brain.Screen.print("Pose X: %.2f", currentPose.x);
     Brain.Screen.setCursor(5, 1);

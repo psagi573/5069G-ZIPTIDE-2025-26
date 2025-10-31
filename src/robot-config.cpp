@@ -19,14 +19,13 @@ motor R8 = motor(PORT14, ratio6_1, false);
 
 motor Roller = motor(PORT9, ratio18_1, false);
 motor Intake = motor(PORT18, ratio18_1, true);
-motor middle = motor(PORT5, ratio6_1, true);
-rotation Yaxis = rotation(PORT15, false);
-rotation Xaxis = rotation(PORT16, true);
-inertial inertial19 = inertial(PORT11);
-digital_out Lifter = digital_out(Brain.ThreeWirePort.H);
-digital_out Trapdoor = digital_out(Brain.ThreeWirePort.G);
-digital_out Loader = digital_out(Brain.ThreeWirePort.F);
-optical Color = optical(PORT4);
+inertial inertial19 = inertial(PORT18);
+digital_out Lifter = digital_out(Brain.ThreeWirePort.A);
+digital_out Trapdoor = digital_out(Brain.ThreeWirePort.B);
+motor_group R = motor_group(R6, R7, R8);
+motor_group L = motor_group(L1, L2, L3);
+drivetrain Drivetrain = drivetrain(R, L);
+motor_group Intake = motor_group(Roller, Intake);
 
 // VEXcode generated functions
 // define variable for remote controller enable/disable

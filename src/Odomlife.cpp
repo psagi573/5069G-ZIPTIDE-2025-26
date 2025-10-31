@@ -11,10 +11,10 @@ namespace Odom {
 const double WHEEL_DIAMETER = 2.75; 
 
 // 2. Drive Gear Ratio (Motor Turns / Wheel Turns) -> e.g., (30 / 48) = 0.625
-const double DRIVE_GEAR_RATIO = 38.0 / 48.0;
+const double DRIVE_GEAR_RATIO = 48.0 / 60.0;
 
 // 3. Tracking Width (in inches). Distance between the center of the left and right wheels.
-const double TRACKING_WIDTH = 11.625; 
+const double TRACKING_WIDTH = 11.0; 
 
 // 4. Sensor Fusion Weights (IMU is generally more reliable for rotation)
 const double IMU_WEIGHT = 0.9;
@@ -35,7 +35,7 @@ static bool isRunning = false;
 static vex::motor_group *leftDrive = nullptr;
 static vex::motor_group *rightDrive = nullptr;
 static vex::inertial *imuSensor1 = nullptr; // Pointer for IMU 1
-static vex::inertial *imuSensor2 = nullptr; // Pointer for IMU 2
+
 
 // Previous sensor values for delta calculation
 static double prevLeftTurns = 0.0;
@@ -57,8 +57,7 @@ int odomTask() {
         
         // DUAL IMU STEP: Get raw heading from both and average them
         double imu1Deg = imuSensor1->rotation();
-        double imu2Deg = imuSensor2->rotation();
-        double currThetaDegRaw = (imu1Deg + imu2Deg) / 2.0; 
+        double currThetaDegRaw = (imu1Deg );
         
         // 2. Calculate deltas (change since last tick)
         double deltaLeftTurns = currLeftTurns - prevLeftTurns;
@@ -152,13 +151,12 @@ int odomTask() {
 // Public Functions (start, stop, getPose, setPose)
 // =========================================================
 
-void start(vex::motor_group& left, vex::motor_group& right, vex::inertial& imu1, vex::inertial& imu2) {
+void start(vex::motor_group& left, vex::motor_group& right, vex::inertial& imu1) {
     if (isRunning) stop();
 
     leftDrive = &left;
     rightDrive = &right;
     imuSensor1 = &imu1;
-    imuSensor2 = &imu2;
 
 
     // Reset all sensor positions and the pose
@@ -193,7 +191,7 @@ void setPose(double x, double y, double theta) {
     odomMutex.unlock();
 
     // Reset previous values to synchronize hardware and tracking state
-    if (leftDrive && rightDrive && imuSensor1 && imuSensor2) {
+    if (leftDrive && rightDrive && imuSensor1) {
         leftDrive->resetPosition();
         rightDrive->resetPosition();
         
@@ -202,14 +200,13 @@ void setPose(double x, double y, double theta) {
         double finalImuAngle = theta - 90.0; 
         
         imuSensor1->setRotation(finalImuAngle, degrees); 
-        imuSensor2->setRotation(finalImuAngle, degrees); 
 
         // Synchronize tracking variables
         prevLeftTurns = 0;
         prevRightTurns = 0;
         
         // Calculate the new averaged raw reading after setting the rotation
-        double avgImuRot = (imuSensor1->rotation() + imuSensor2->rotation()) / 2.0;
+        double avgImuRot = (imuSensor1->rotation() );
         prevThetaDegRaw = avgImuRot; 
         runningThetaRad = theta * (M_PI / 180.0);
     }
