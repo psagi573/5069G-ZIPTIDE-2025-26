@@ -13,11 +13,11 @@ const double wheelTrack = 11.5; // in inches (left-right distance)
 // Motor groups
 
 // PID class values
-PID distPID(0.05, 0, 0.6);
+PID distPID(0.05, 0, 0.5);
 PID fastTurnPID(0.043, 0.0001, 0.39);
 
 PID arcPID(0.15, 0, 0);
-PID sweepPID(0.04, 0, 0.5);
+PID sweepPID(0.05, 0, 0.5);
 
 PID drivePID(0.05, 0, 0.6);
 PID headingPID(0.043, 0.0001, 0.39);
@@ -91,8 +91,8 @@ double minVolt(double v)
     return v;
 }
 
-const float WHEEL_CIRCUMFERENCE = 3.1416 * 3.15;               // ~8.639 inches
-const float INCHES_PER_MOTOR_TURN = WHEEL_CIRCUMFERENCE / 1.6; // ~5.399 inches
+const float WHEEL_CIRCUMFERENCE = 3.1416 * 3.125;               // ~8.639 inches
+const float INCHES_PER_MOTOR_TURN = WHEEL_CIRCUMFERENCE * 0.8; // ~5.399 inches
 
 float getAverageDistance()
 {

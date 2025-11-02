@@ -68,7 +68,7 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
   R6.setVelocity(600, rpm);
   R7.setVelocity(600, rpm);
   R8.setVelocity(600, rpm);
-  Intake.setVelocity(300, rpm);
+  Intake.setVelocity(600, rpm);
 
   while (true)
   {
@@ -138,7 +138,7 @@ int storeControls()
   {
     if (Controller1.ButtonL2.pressing())
     {
-      Intake.spin(forward, 100, rpm);
+      Intake.spin(forward);
       waitUntil(!Controller1.ButtonL2.pressing()); // keeps it spinning until the user let go of L1
       Intake.stop();
       wait(10, msec);
@@ -152,7 +152,7 @@ int Liftercontrols()
   bool Lifter1 = true;
   while (true)
   {
-    if (Controller1.ButtonY.pressing())
+    if (Controller1.ButtonB.pressing())
     {
       if (Lifter)
       {
@@ -162,7 +162,7 @@ int Liftercontrols()
       {
         Lifter1 = true;
       }
-      while (Controller1.ButtonY.pressing())
+      while (Controller1.ButtonB.pressing())
       {
 
         wait(5, msec);
@@ -180,6 +180,120 @@ int Liftercontrols()
   }
 }
 
+
+
+
+int Allignercontrols()
+{
+
+  bool alligner1 = true;
+  while (true)
+  {
+    if (Controller1.ButtonRight.pressing())
+    {
+      if (alligner1)
+      {
+        alligner1 = false;
+      }
+      else if (!alligner1)
+      {
+        alligner1 = true;
+      }
+      while (Controller1.ButtonRight.pressing())
+      {
+
+        wait(5, msec);
+      }
+
+      if (alligner1)
+      {
+        Alligner.set(true);
+      }
+      else
+      {
+        Alligner.set(false);
+      }
+    }
+  }
+}
+
+
+
+
+
+int Hookcontrols()
+{
+
+  bool hook1 = true;
+  while (true)
+  {
+    if (Controller1.ButtonY.pressing())
+    {
+      if (hook1)
+      {
+        hook1 = false;
+      }
+      else if (!hook1)
+      {
+        hook1=true;
+      }
+      while (Controller1.ButtonY.pressing())
+      {
+
+        wait(5, msec);
+      }
+
+      if (hook1)
+      {
+        Hook.set(true);
+      }
+      else
+      {
+        Hook.set(false);
+      }
+    }
+  }
+}
+
+
+
+
+int Loadercontrols()
+{
+
+  bool loader1 = true;
+  while (true)
+  {
+    if (Controller1.ButtonDown.pressing())
+    {
+      if (loader1)
+      {
+        loader1 = false;
+      }
+      else if (!loader1)
+      {
+        loader1 = true;
+      }
+      while (Controller1.ButtonDown.pressing())
+      {
+
+        wait(5, msec);
+      }
+
+      if (loader1)
+      {
+        Alligner.set(false);
+        Loader.set(true);
+      }
+      else
+      {
+        Alligner.set(true);
+        Loader.set(false);
+      }
+    }
+  }
+}
+
 void usercontrol() // A function named "usercontrol", in this case, any code in the brackets will run once (unless in a loop) when its driver control
 {
   task a(DriveTrainControls); // creates a Thread Named "a" that runs the function "DriveTrainControls", This thread controls the drivetrain
@@ -188,6 +302,9 @@ void usercontrol() // A function named "usercontrol", in this case, any code in 
   task d(ReverseControls);
   task e(storeControls);
   task f(Liftercontrols);
+  task g(Allignercontrols);
+  task h(Loadercontrols);
+  task i(Hookcontrols);
 
 }
 
@@ -328,6 +445,12 @@ void usercontrol() // A function named "usercontrol", in this case, any code in 
 void pre_auton(void)
 {
   vexcodeInit();
+  inertial19.calibrate();
+  while (inertial19.isCalibrating())
+  {
+    wait(100, msec);
+  }
+  Odom::start(L, R, inertial19);
 
   // autonSelector.initialize();
   //   while (!Competition.isAutonomous() && !Competition.isDriverControl()) {
@@ -350,9 +473,317 @@ void auton() // A function named "auton", in this case, any code in the brackets
   R8.setVelocity(600, rpm);
   Intake.setVelocity(600, rpm);
 
+  
   Intake.spin(forward);
-  // drive(19, 1500);
-  // vel = false;
+  drive(19,1500);
+  drive(8,9500);
+  turn(290);
+  Intake.stop();
+  drive(16,1500);
+  Intake.spin(reverse);
+  wait(1.5,sec);
+  turn(285);
+  drive(-61,1500);
+  turn(341);
+  wait(0.3,sec);
+  Hook.set(true);
+  drive(30,1500);
+  turn(310);
+  drive(10,1500);
+  turn(340);
+  Hook.set(false);
+  wait(3,sec);
+  Hook.set(true);
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // turn(165);
+  // Loader.set(true);
+  // Intake.spin(forward);
+  // wait(0.5,sec);
+  // drive(17,1500);
+  // drive(6,700);
+  // wait(0.5,sec);
+  // drive(-20,1500);
+  // Loader.set(false);
+  // Alligner.set(true);
+  // drive(-13,1500);
+  // Trapdoor.set(true);
+  // Intake.spin(forward);
+
+
+
+  //other
+  //   Intake.setStopping(coast);
+  // L1.setVelocity(600, rpm);
+  // L2.setVelocity(600, rpm);
+  // L3.setVelocity(600, rpm);
+  // R6.setVelocity(600, rpm);
+  // R7.setVelocity(600, rpm);
+  // R8.setVelocity(600, rpm);
+  // Intake.setVelocity(600, rpm);
+
+  // Intake.spin(forward);
+  // drive(19,1500);
+  // drive(10,1500);
+  // turn(290);
+  // Intake.stop();
+  // drive(16,1500);
+  // wait(3.5,sec);
+  // Intake.spin(reverse);
+  // wait(2,sec);
+  // Alligner.set(true);
+  // drive(-20,1500);
+  // wait(0.5,sec);
+  // turn(120);
+  // wait(0.5,sec);
+  // drive(-25,1500);
+  // wait(0.25,sec);
+  // drive(10,1500);
+  // Alligner.set(false);
+  // Intake.spin(forward);
+  // turn(120);
+  // drive(42,1500);
+  // Loader.set(true);
+  // turn(160);
+  // drive(15,1500);
+  // drive(5,700);
+
+  //drive(19, 1500);
+  // vel = false;.
   // drive(7.5, 1500);
   // turn(250);
   // Loader.set(true);

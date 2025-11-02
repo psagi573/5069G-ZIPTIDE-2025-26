@@ -25,9 +25,8 @@ namespace Odom {
      * @param left The motor_group for the left side of the drivetrain.
      * @param right The motor_group for the right side of the drivetrain.
      * @param imu1 The first inertial sensor.
-     * @param imu2 The second inertial sensor.
      */
-    void start(vex::motor_group& left, vex::motor_group& right, vex::inertial& imu1, vex::inertial& imu2);
+    void start(vex::motor_group& left, vex::motor_group& right, vex::inertial& imu1);
 
     /**
      * @brief Stops the odometry tracking thread.
