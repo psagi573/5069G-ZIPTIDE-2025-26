@@ -50,154 +50,225 @@ float tovolt(float percentage)
   return (percentage * 12.0 / 100.0);
 }
 
-int DriveTrainControls() // we create a integer function named "DriveTrainControls", later in the code we plan to turnpid this into a Thread that controls the drivetrain
+// int DriveTrainControls() // we create a integer function named "DriveTrainControls", later in the code we plan to turnpid this into a Thread that controls the drivetrain
+// {
+//   Roller.stop();
+//   Intake.stop();
+//   L1.setStopping(brake);
+//   L2.setStopping(brake);
+//   L3.setStopping(brake);
+//   R6.setStopping(brake);
+//   R7.setStopping(brake);
+//   R8.setStopping(brake);
+//   Intake.setStopping(brake);
+
+//   L1.setVelocity(600, rpm);
+//   L2.setVelocity(600, rpm);
+//   L3.setVelocity(600, rpm);
+//   R6.setVelocity(600, rpm);
+//   R7.setVelocity(600, rpm);
+//   R8.setVelocity(600, rpm);
+//   Intake.setVelocity(600, rpm);
+
+//   while (true)
+//   {
+//     // Read joystick values
+//     int forwards = Controller1.Axis3.position(percent);
+//     int turning = Controller1.Axis1.position(percent);
+
+//     int leftVolt = tovolt(forwards + turning);
+//     int rightVolt = tovolt(forwards - turning);
+
+//     // // Spin motors
+//     L.spin(forward, leftVolt, volt);
+//     R.spin(forward, rightVolt, volt);
+//     wait(10, msec);
+//   }
+// }
+
+// int IntakeControls()
+// {
+//   Intake.stop();
+//   while (true)
+//   {
+
+//     if (Controller1.ButtonR1.pressing())
+//     {
+//       Trapdoor.set(false);
+//       Intake.spin(forward);
+//       waitUntil(!Controller1.ButtonR1.pressing()); // keeps it spinning until the user let go of R1
+//       Intake.stop();
+//     }
+//     wait(10, msec);
+//   }
+// }
+
+// int OutakeControls()
+// {
+//   while (true)
+//   {
+//     if (Controller1.ButtonR2.pressing())
+//     {
+//       Trapdoor.set(true);
+//       Intake.spin(forward);
+//       waitUntil(!Controller1.ButtonR2.pressing()); // keeps it spinning until the user let go of R2
+//       Intake.stop();
+//     }
+//     wait(10, msec);
+//   }
+// }
+
+// int ReverseControls()
+// {
+//   while (true)
+//   {
+//     if (Controller1.ButtonL1.pressing())
+//     {
+//       Intake.spin(reverse);
+//       waitUntil(!Controller1.ButtonL1.pressing()); // keeps it spinning until the user let go of L1
+//       Intake.stop();
+//     }
+//     wait(10, msec);
+//   }
+// }
+
+// int storeControls()
+// {
+//   while (true)
+//   {
+//     if (Controller1.ButtonL2.pressing())
+//     {
+//       Intake.spin(forward);
+//       waitUntil(!Controller1.ButtonL2.pressing()); // keeps it spinning until the user let go of L1
+//       Intake.stop();
+//       wait(10, msec);
+//     }
+//   }
+// }
+
+// int Liftercontrols()
+// {
+
+//   bool Lifter1 = true;
+//   while (true)
+//   {
+//     if (Controller1.ButtonB.pressing())
+//     {
+//       if (Lifter)
+//       {
+//         Lifter1 = false;
+//       }
+//       else if (!Lifter)
+//       {
+//         Lifter1 = true;
+//       }
+//       while (Controller1.ButtonB.pressing())
+//       {
+
+//         wait(5, msec);
+//       }
+
+//       if (Lifter1)
+//       {
+//         Lifter.set(true);
+//       }
+//       else
+//       {
+//         Lifter.set(false);
+//       }
+//     }
+//   }
+// }
+
+
+
+
+// int Allignercontrols()
+// {
+
+//   bool alligner1 = true;
+//   while (true)
+//   {
+//     if (Controller1.ButtonRight.pressing())
+//     {
+//       if (alligner1)
+//       {
+//         alligner1 = false;
+//       }
+//       else if (!alligner1)
+//       {
+//         alligner1 = true;
+//       }
+//       while (Controller1.ButtonRight.pressing())
+//       {
+
+//         wait(5, msec);
+//       }
+
+//       if (alligner1)
+//       {
+//         Alligner.set(true);
+//       }
+//       else
+//       {
+//         Alligner.set(false);
+//       }
+//     }
+//   }
+// }
+
+
+int IntakePTOcontrols()
 {
-  Roller.stop();
-  Intake.stop();
-  L1.setStopping(brake);
-  L2.setStopping(brake);
-  L3.setStopping(brake);
-  R6.setStopping(brake);
-  R7.setStopping(brake);
-  R8.setStopping(brake);
-  Intake.setStopping(brake);
 
-  L1.setVelocity(600, rpm);
-  L2.setVelocity(600, rpm);
-  L3.setVelocity(600, rpm);
-  R6.setVelocity(600, rpm);
-  R7.setVelocity(600, rpm);
-  R8.setVelocity(600, rpm);
-  Intake.setVelocity(600, rpm);
-
+  bool IntakePTO = true;
   while (true)
   {
-    // Read joystick values
-    int forwards = Controller1.Axis3.position(percent);
-    int turning = Controller1.Axis1.position(percent);
-
-    int leftVolt = tovolt(forwards + turning);
-    int rightVolt = tovolt(forwards - turning);
-
-    // // Spin motors
-    L.spin(forward, leftVolt, volt);
-    R.spin(forward, rightVolt, volt);
-    wait(10, msec);
-  }
-}
-
-int IntakeControls()
-{
-  Intake.stop();
-  while (true)
-  {
-
-    if (Controller1.ButtonR1.pressing())
+    if (Controller1.ButtonLeft.pressing())
     {
-      Trapdoor.set(false);
-      Intake.spin(forward);
-      waitUntil(!Controller1.ButtonR1.pressing()); // keeps it spinning until the user let go of R1
-      Intake.stop();
-    }
-    wait(10, msec);
-  }
-}
-
-int OutakeControls()
-{
-  while (true)
-  {
-    if (Controller1.ButtonR2.pressing())
-    {
-      Trapdoor.set(true);
-      Intake.spin(forward);
-      waitUntil(!Controller1.ButtonR2.pressing()); // keeps it spinning until the user let go of R2
-      Intake.stop();
-    }
-    wait(10, msec);
-  }
-}
-
-int ReverseControls()
-{
-  while (true)
-  {
-    if (Controller1.ButtonL1.pressing())
-    {
-      Intake.spin(reverse);
-      waitUntil(!Controller1.ButtonL1.pressing()); // keeps it spinning until the user let go of L1
-      Intake.stop();
-    }
-    wait(10, msec);
-  }
-}
-
-int storeControls()
-{
-  while (true)
-  {
-    if (Controller1.ButtonL2.pressing())
-    {
-      Intake.spin(forward);
-      waitUntil(!Controller1.ButtonL2.pressing()); // keeps it spinning until the user let go of L1
-      Intake.stop();
-      wait(10, msec);
-    }
-  }
-}
-
-int Liftercontrols()
-{
-
-  bool Lifter1 = true;
-  while (true)
-  {
-    if (Controller1.ButtonB.pressing())
-    {
-      if (Lifter)
+      if (IntakePTO)
       {
-        Lifter1 = false;
+        IntakePTO = false;
       }
-      else if (!Lifter)
+      else if (!IntakePTO)
       {
-        Lifter1 = true;
+        IntakePTO = true;
       }
-      while (Controller1.ButtonB.pressing())
+      while (Controller1.ButtonLeft.pressing())
       {
 
         wait(5, msec);
       }
 
-      if (Lifter1)
+      if (IntakePTO)
       {
-        Lifter.set(true);
+        IntakePTOPiston.set(true);
       }
       else
       {
-        Lifter.set(false);
+
+        IntakePTOPiston.set(false);
       }
     }
   }
 }
 
 
-
-
-int Allignercontrols()
+int DrivePTOcontrols()
 {
 
-  bool alligner1 = true;
+  bool DrivePTO = true;
   while (true)
   {
     if (Controller1.ButtonRight.pressing())
     {
-      if (alligner1)
+      if (DrivePTO)
       {
-        alligner1 = false;
+        DrivePTO = false;
       }
-      else if (!alligner1)
+      else if (!DrivePTO)
       {
-        alligner1 = true;
+        DrivePTO = true;
       }
       while (Controller1.ButtonRight.pressing())
       {
@@ -205,13 +276,13 @@ int Allignercontrols()
         wait(5, msec);
       }
 
-      if (alligner1)
+      if (DrivePTO)
       {
-        Alligner.set(true);
+        DrivePTOPiston.set(true);
       }
       else
       {
-        Alligner.set(false);
+        DrivePTOPiston.set(false);
       }
     }
   }
@@ -219,92 +290,92 @@ int Allignercontrols()
 
 
 
+// int Hookcontrols()
+// {
 
+//   bool hook1 = true;
+//   while (true)
+//   {
+//     if (Controller1.ButtonY.pressing())
+//     {
+//       if (hook1)
+//       {
+//         hook1 = false;
+//       }
+//       else if (!hook1)
+//       {
+//         hook1=true;
+//       }
+//       while (Controller1.ButtonY.pressing())
+//       {
 
-int Hookcontrols()
-{
+//         wait(5, msec);
+//       }
 
-  bool hook1 = true;
-  while (true)
-  {
-    if (Controller1.ButtonY.pressing())
-    {
-      if (hook1)
-      {
-        hook1 = false;
-      }
-      else if (!hook1)
-      {
-        hook1=true;
-      }
-      while (Controller1.ButtonY.pressing())
-      {
-
-        wait(5, msec);
-      }
-
-      if (hook1)
-      {
-        Hook.set(true);
-      }
-      else
-      {
-        Hook.set(false);
-      }
-    }
-  }
-}
+//       if (hook1)
+//       {
+//         Hook.set(true);
+//       }
+//       else
+//       {
+//         Hook.set(false);
+//       }
+//     }
+//   }
+// }
 
 
 
 
-int Loadercontrols()
-{
+// int Loadercontrols()
+// {
 
-  bool loader1 = true;
-  while (true)
-  {
-    if (Controller1.ButtonDown.pressing())
-    {
-      if (loader1)
-      {
-        loader1 = false;
-      }
-      else if (!loader1)
-      {
-        loader1 = true;
-      }
-      while (Controller1.ButtonDown.pressing())
-      {
+//   bool loader1 = true;
+//   while (true)
+//   {
+//     if (Controller1.ButtonDown.pressing())
+//     {
+//       if (loader1)
+//       {
+//         loader1 = false;
+//       }
+//       else if (!loader1)
+//       {
+//         loader1 = true;
+//       }
+//       while (Controller1.ButtonDown.pressing())
+//       {
 
-        wait(5, msec);
-      }
+//         wait(5, msec);
+//       }
 
-      if (loader1)
-      {
-        Alligner.set(false);
-        Loader.set(true);
-      }
-      else
-      {
-        Alligner.set(true);
-        Loader.set(false);
-      }
-    }
-  }
-}
+//       if (loader1)
+//       {
+//         Alligner.set(false);
+//         Loader.set(true);
+//       }
+//       else
+//       {
+//         Alligner.set(true);
+//         Loader.set(false);
+//       }
+//     }
+//   }
+// }
 
 void usercontrol() // A function named "usercontrol", in this case, any code in the brackets will run once (unless in a loop) when its driver control
 {
-  task a(DriveTrainControls); // creates a Thread Named "a" that runs the function "DriveTrainControls", This thread controls the drivetrain
-  task b(IntakeControls);
-  task c(OutakeControls);
-  task d(ReverseControls);
-  task e(storeControls);
-  task f(Liftercontrols);
-  task g(Allignercontrols);
-  task h(Loadercontrols);
-  task i(Hookcontrols);
+  // task a(DriveTrainControls); // creates a Thread Named "a" that runs the function "DriveTrainControls", This thread controls the drivetrain
+  // task b(IntakeControls);
+  // task c(OutakeControls);
+  // task d(ReverseControls);
+  // task e(storeControls);
+  // task f(Liftercontrols);
+  // task g(Allignercontrols);
+  // task h(Loadercontrols);
+  // task i(Hookcontrols);
+  task a(IntakePTOcontrols);
+  task b(DrivePTOcontrols);
 
 }
 
@@ -442,582 +513,348 @@ void usercontrol() // A function named "usercontrol", in this case, any code in 
 //   outake.spin(forward);
 // }
 
-void pre_auton(void)
-{
-  vexcodeInit();
-  inertial19.calibrate();
-  while (inertial19.isCalibrating())
-  {
-    wait(100, msec);
-  }
-  Odom::start(L, R, inertial19);
+// void pre_auton(void)
+// {
+//   vexcodeInit();
+//   inertial19.calibrate();
+//   while (inertial19.isCalibrating())
+//   {
+//     wait(100, msec);
+//   }
+//   Odom::start(L, R, inertial19);
 
-  // autonSelector.initialize();
-  //   while (!Competition.isAutonomous() && !Competition.isDriverControl()) {
-  //   autonSelector.update();   // <- keep checking for inputs
-  //   wait(20, msec);
-}
+//   // autonSelector.initialize();
+//   //   while (!Competition.isAutonomous() && !Competition.isDriverControl()) {
+//   //   autonSelector.update();   // <- keep checking for inputs
+//   //   wait(20, msec);
+// }
 
-//////////////////////////////////////////////////////////////////////////
-void auton() // A function named "auton", in this case, any code in the brackets will run once (unless in a loop) when its autonomous
-{
+// //////////////////////////////////////////////////////////////////////////
+// void auton() // A function named "auton", in this case, any code in the brackets will run once (unless in a loop) when its autonomous
+// {
 
-  // autonSelector.runSelectedAuton();
+//   // autonSelector.runSelectedAuton();
 
-  Intake.setStopping(coast);
-  L1.setVelocity(600, rpm);
-  L2.setVelocity(600, rpm);
-  L3.setVelocity(600, rpm);
-  R6.setVelocity(600, rpm);
-  R7.setVelocity(600, rpm);
-  R8.setVelocity(600, rpm);
-  Intake.setVelocity(600, rpm);
+//   Intake.setStopping(coast);
+//   L1.setVelocity(600, rpm);
+//   L2.setVelocity(600, rpm);
+//   L3.setVelocity(600, rpm);
+//   R6.setVelocity(600, rpm);
+//   R7.setVelocity(600, rpm);
+//   R8.setVelocity(600, rpm);
+//   Intake.setVelocity(600, rpm);
 
   
-  Intake.spin(forward);
-  drive(19,1500);
-  drive(8,9500);
-  turn(290);
-  Intake.stop();
-  drive(16,1500);
-  Intake.spin(reverse);
-  wait(1.5,sec);
-  turn(285);
-  drive(-61,1500);
-  turn(341);
-  wait(0.3,sec);
-  Hook.set(true);
-  drive(30,1500);
-  turn(310);
-  drive(10,1500);
-  turn(340);
-  Hook.set(false);
-  wait(3,sec);
-  Hook.set(true);
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  // turn(165);
-  // Loader.set(true);
-  // Intake.spin(forward);
-  // wait(0.5,sec);
-  // drive(17,1500);
-  // drive(6,700);
-  // wait(0.5,sec);
-  // drive(-20,1500);
-  // Loader.set(false);
-  // Alligner.set(true);
-  // drive(-13,1500);
-  // Trapdoor.set(true);
-  // Intake.spin(forward);
-
-
-
-  //other
-  //   Intake.setStopping(coast);
-  // L1.setVelocity(600, rpm);
-  // L2.setVelocity(600, rpm);
-  // L3.setVelocity(600, rpm);
-  // R6.setVelocity(600, rpm);
-  // R7.setVelocity(600, rpm);
-  // R8.setVelocity(600, rpm);
-  // Intake.setVelocity(600, rpm);
-
-  // Intake.spin(forward);
-  // drive(19,1500);
-  // drive(10,1500);
-  // turn(290);
-  // Intake.stop();
-  // drive(16,1500);
-  // wait(3.5,sec);
-  // Intake.spin(reverse);
-  // wait(2,sec);
-  // Alligner.set(true);
-  // drive(-20,1500);
-  // wait(0.5,sec);
-  // turn(120);
-  // wait(0.5,sec);
-  // drive(-25,1500);
-  // wait(0.25,sec);
-  // drive(10,1500);
-  // Alligner.set(false);
-  // Intake.spin(forward);
-  // turn(120);
-  // drive(42,1500);
-  // Loader.set(true);
-  // turn(160);
-  // drive(15,1500);
-  // drive(5,700);
-
-  //drive(19, 1500);
-  // vel = false;.
-  // drive(7.5, 1500);
-  // turn(250);
-  // Loader.set(true);
-  // wait(0.3,sec);
-  // drive(32.5, 1500);
-  // wait(0.3, sec);
-  // turn(200);
-  // Lifter.set(true);
-  // wait(0.2, sec);
-  // drive(17.5, 1300);
-  // wait(3,sec);
-  // drive(-7,1500);
-  // drive(7, 1500);
-  // wait(3, sec);
-  // drive(-16, 1100);
-  // //wait(0.1, sec);
-  // //turn(195);
-  // drive(-15, 1000);
-  // outake.spin(forward);
-  // wait(9,sec);
-  // Loader.set(false);
-  // drive(10,1500);
-  // turn(155);
-  // drive(29,1500);
-  // turn(110);
-  // drive(50,1500);
-  // wait(0.5, sec);
-  // drive(0, 1500);
-
-  // autonSelector.stopSelection();
-  // autonSelector.executeSelectedAuton();
-  ///////////////////////////////////////////////////////////////////////
-  ////LEFT QUALS AUTON//////////
-  // outake.setStopping(coast);
-  // RollerIntake.setStopping(coast);
-
-  // colorsort = task(Colorcontrols);
-  // jamtask = task(jamcontrols);
-  // targetColor = vex::color::blue;
-  // L1.setVelocity(600, rpm);
-  // L2.setVelocity(600, rpm);
-  // L3.setVelocity(600, rpm);
-  // R6.setVelocity(600, rpm);
-  // R7.setVelocity(600, rpm);
-  // R8.setVelocity(600, rpm);
-  // Out.setVelocity(200, rpm);
-  // Take.setVelocity(200, rpm);
-  // outake.setVelocity(200, rpm);
-  // RollerIntake.setVelocity(600, rpm);
-
-  // RollerIntake.spin(forward);
-  // drive(19, 1500);
-  // drive(8.5, 1500);
-  // wait(0.2, sec);
-  // turn(240);
-  // wait(0.2, sec);
-  // drive(-12.5, 1500);
-  // outake.spin(forward);
-  // wait(1, sec);
-  // outake.stop();
-  // drive(46.5, 1800);
-  // turn(195);
-  // Loader.set(true);
-  // Lifter.set(true);
-  // wait(0.2, sec);
-  // drive(16, 1700);
-  // wait(0.4, sec);
-  // drive(-10, 1500);
-  // drive(-20, 1500);
-  // outake.spin(forward);
-
-  //////////////////////////////////////////////////////////////////
-
-  // good elims left auton
-  // outake.setStopping(coast);
-  // RollerIntake.setStopping(coast);
-
-  // colorsort = task(Colorcontrols);
-  // jamtask = task(jamcontrols);
-  // targetColor = vex::color::blue;
-  // jam = true;
-  // Trap = false;
-  // L1.setVelocity(600, rpm);
-  // L2.setVelocity(600, rpm);
-  // L3.setVelocity(600, rpm);
-  // R6.setVelocity(600, rpm);
-  // R7.setVelocity(600, rpm);
-  // R8.setVelocity(600, rpm);
-  // Out.setVelocity(200, rpm);
-  // Take.setVelocity(200, rpm);
-  // outake.setVelocity(200, rpm);
-  // RollerIntake.setVelocity(600, rpm);
-
-  // RollerIntake.spin(forward);
-  // drive(19, 1500);
-  // vel = false;
-  // drive(7.5, 1500);
-  // turn(250);
-  // Loader.set(true);
-  // wait(0.3,sec);
-  // drive(32.5, 1500);
-  // wait(0.3, sec);
-  // turn(200);
-  // Lifter.set(true);
-  // wait(0.2, sec);
-  // drive(17.5, 1300);
-  // wait(0.4,sec);
-  // drive(-16, 1100);
-  // //wait(0.1, sec);
-  // //turn(195);
-  // drive(-15, 1000);
-  // outake.spin(forward);
-  // wait(3,sec);
-  // drive(27,1500);
-
-  ////////////////////////////////////////////////
-
-  // good elims left auton
-  // outake.setStopping(coast);
-  // RollerIntake.setStopping(coast);
-
-  // colorsort = task(Colorcontrols);
-  // jamtask = task(jamcontrols);
-  // targetColor = vex::color::blue;
-  // jam = true;
-  // Trap = false;
-  // L1.setVelocity(600, rpm);
-  // L2.setVelocity(600, rpm);
-  // L3.setVelocity(600, rpm);
-  // R6.setVelocity(600, rpm);
-  // R7.setVelocity(600, rpm);
-  // R8.setVelocity(600, rpm);
-  // Out.setVelocity(200, rpm);
-  // Take.setVelocity(200, rpm);
-  // outake.setVelocity(200, rpm);
-  // RollerIntake.setVelocity(600, rpm);
-
-  // RollerIntake.spin(forward);
-  // drive(19, 1500);
-  // vel = false;
-  // drive(7.5, 1500);
-  // turn(110);
-  // Loader.set(true);
-  // wait(0.3,sec);
-  // drive(32.5, 1500);
-  // wait(0.3, sec);
-  // turn(160);
-  // Lifter.set(true);
-  // wait(0.2, sec);
-  // drive(18, 1300);
-  // wait(0.3,sec);
-  // drive(-16, 1100);
-  // //wait(0.1, sec);
-  // //turn(195);
-  // drive(-15, 1000);
-  // outake.spin(forward);
-  // wait(3,sec);
-  // outake.stop();
-  // RollerIntake.stop();
-  // drive(27,1500);
-
-  //////////////////////////////////////////////////////////////////
-
-  // good elims Right auton
-
-  //  outake.setStopping(coast);
-  // RollerIntake.setStopping(coast);
-
-  // colorsort = task(Colorcontrols);
-  // jamtask = task(jamcontrols);
-  // targetColor = vex::color::blue;
-  // jam = true;
-  // Trap = false;
-  // L1.setVelocity(600, rpm);
-  // L2.setVelocity(600, rpm);
-  // L3.setVelocity(600, rpm);
-  // R6.setVelocity(600, rpm);
-  // R7.setVelocity(600, rpm);
-  // R8.setVelocity(600, rpm);
-  // Out.setVelocity(200, rpm);
-  // Take.setVelocity(200, rpm);
-  // outake.setVelocity(200, rpm);
-  // RollerIntake.setVelocity(600, rpm);
-
-  // RollerIntake.spin(forward);
-  // drive(19, 1500);
-  // vel = false;
-  // drive(7.5, 1500);
-  // turn(120);
-  // wait(0.3,sec);
-  // drive(39, 1500);
-  // Loader.set(true);
-  // Lifter.set(true);
-  // wait(0.3, sec);
-  // turn(165);
-  // wait(0.2, sec);
-  // drive(13, 1000);
-  // drive(-15, 1100);
-  // wait(0.2, sec);
-  // turn(160);
-  // drive(-15, 1000);
-  // outake.spin(forward);
-}
+//   Intake.spin(forward);
+//   drive(19,1500);
+//   drive(8,9500);
+//   turn(290);
+//   Intake.stop();
+//   drive(16,1500);
+//   Intake.spin(reverse);
+//   wait(1.5,sec);
+//   turn(285);
+//   drive(-61,1500);
+//   turn(341);
+//   wait(0.3,sec);
+//   Hook.set(true);
+//   drive(30,1500);
+//   turn(310);
+//   drive(10,1500);
+//   turn(340);
+//   Hook.set(false);
+//   wait(3,sec);
+//   Hook.set(true);
+
+
+//   // turn(165);
+//   // Loader.set(true);
+//   // Intake.spin(forward);
+//   // wait(0.5,sec);
+//   // drive(17,1500);
+//   // drive(6,700);
+//   // wait(0.5,sec);
+//   // drive(-20,1500);
+//   // Loader.set(false);
+//   // Alligner.set(true);
+//   // drive(-13,1500);
+//   // Trapdoor.set(true);
+//   // Intake.spin(forward);
+
+
+
+//   //other
+//   //   Intake.setStopping(coast);
+//   // L1.setVelocity(600, rpm);
+//   // L2.setVelocity(600, rpm);
+//   // L3.setVelocity(600, rpm);
+//   // R6.setVelocity(600, rpm);
+//   // R7.setVelocity(600, rpm);
+//   // R8.setVelocity(600, rpm);
+//   // Intake.setVelocity(600, rpm);
+
+//   // Intake.spin(forward);
+//   // drive(19,1500);
+//   // drive(10,1500);
+//   // turn(290);
+//   // Intake.stop();
+//   // drive(16,1500);
+//   // wait(3.5,sec);
+//   // Intake.spin(reverse);
+//   // wait(2,sec);
+//   // Alligner.set(true);
+//   // drive(-20,1500);
+//   // wait(0.5,sec);
+//   // turn(120);
+//   // wait(0.5,sec);
+//   // drive(-25,1500);
+//   // wait(0.25,sec);
+//   // drive(10,1500);
+//   // Alligner.set(false);
+//   // Intake.spin(forward);
+//   // turn(120);
+//   // drive(42,1500);
+//   // Loader.set(true);
+//   // turn(160);
+//   // drive(15,1500);
+//   // drive(5,700);
+
+//   //drive(19, 1500);
+//   // vel = false;.
+//   // drive(7.5, 1500);
+//   // turn(250);
+//   // Loader.set(true);
+//   // wait(0.3,sec);
+//   // drive(32.5, 1500);
+//   // wait(0.3, sec);
+//   // turn(200);
+//   // Lifter.set(true);
+//   // wait(0.2, sec);
+//   // drive(17.5, 1300);
+//   // wait(3,sec);
+//   // drive(-7,1500);
+//   // drive(7, 1500);
+//   // wait(3, sec);
+//   // drive(-16, 1100);
+//   // //wait(0.1, sec);
+//   // //turn(195);
+//   // drive(-15, 1000);
+//   // outake.spin(forward);
+//   // wait(9,sec);
+//   // Loader.set(false);
+//   // drive(10,1500);
+//   // turn(155);
+//   // drive(29,1500);
+//   // turn(110);
+//   // drive(50,1500);
+//   // wait(0.5, sec);
+//   // drive(0, 1500);
+
+//   // autonSelector.stopSelection();
+//   // autonSelector.executeSelectedAuton();
+//   ///////////////////////////////////////////////////////////////////////
+//   ////LEFT QUALS AUTON//////////
+//   // outake.setStopping(coast);
+//   // RollerIntake.setStopping(coast);
+
+//   // colorsort = task(Colorcontrols);
+//   // jamtask = task(jamcontrols);
+//   // targetColor = vex::color::blue;
+//   // L1.setVelocity(600, rpm);
+//   // L2.setVelocity(600, rpm);
+//   // L3.setVelocity(600, rpm);
+//   // R6.setVelocity(600, rpm);
+//   // R7.setVelocity(600, rpm);
+//   // R8.setVelocity(600, rpm);
+//   // Out.setVelocity(200, rpm);
+//   // Take.setVelocity(200, rpm);
+//   // outake.setVelocity(200, rpm);
+//   // RollerIntake.setVelocity(600, rpm);
+
+//   // RollerIntake.spin(forward);
+//   // drive(19, 1500);
+//   // drive(8.5, 1500);
+//   // wait(0.2, sec);
+//   // turn(240);
+//   // wait(0.2, sec);
+//   // drive(-12.5, 1500);
+//   // outake.spin(forward);
+//   // wait(1, sec);
+//   // outake.stop();
+//   // drive(46.5, 1800);
+//   // turn(195);
+//   // Loader.set(true);
+//   // Lifter.set(true);
+//   // wait(0.2, sec);
+//   // drive(16, 1700);
+//   // wait(0.4, sec);
+//   // drive(-10, 1500);
+//   // drive(-20, 1500);
+//   // outake.spin(forward);
+
+//   //////////////////////////////////////////////////////////////////
+
+//   // good elims left auton
+//   // outake.setStopping(coast);
+//   // RollerIntake.setStopping(coast);
+
+//   // colorsort = task(Colorcontrols);
+//   // jamtask = task(jamcontrols);
+//   // targetColor = vex::color::blue;
+//   // jam = true;
+//   // Trap = false;
+//   // L1.setVelocity(600, rpm);
+//   // L2.setVelocity(600, rpm);
+//   // L3.setVelocity(600, rpm);
+//   // R6.setVelocity(600, rpm);
+//   // R7.setVelocity(600, rpm);
+//   // R8.setVelocity(600, rpm);
+//   // Out.setVelocity(200, rpm);
+//   // Take.setVelocity(200, rpm);
+//   // outake.setVelocity(200, rpm);
+//   // RollerIntake.setVelocity(600, rpm);
+
+//   // RollerIntake.spin(forward);
+//   // drive(19, 1500);
+//   // vel = false;
+//   // drive(7.5, 1500);
+//   // turn(250);
+//   // Loader.set(true);
+//   // wait(0.3,sec);
+//   // drive(32.5, 1500);
+//   // wait(0.3, sec);
+//   // turn(200);
+//   // Lifter.set(true);
+//   // wait(0.2, sec);
+//   // drive(17.5, 1300);
+//   // wait(0.4,sec);
+//   // drive(-16, 1100);
+//   // //wait(0.1, sec);
+//   // //turn(195);
+//   // drive(-15, 1000);
+//   // outake.spin(forward);
+//   // wait(3,sec);
+//   // drive(27,1500);
+
+//   ////////////////////////////////////////////////
+
+//   // good elims left auton
+//   // outake.setStopping(coast);
+//   // RollerIntake.setStopping(coast);
+
+//   // colorsort = task(Colorcontrols);
+//   // jamtask = task(jamcontrols);
+//   // targetColor = vex::color::blue;
+//   // jam = true;
+//   // Trap = false;
+//   // L1.setVelocity(600, rpm);
+//   // L2.setVelocity(600, rpm);
+//   // L3.setVelocity(600, rpm);
+//   // R6.setVelocity(600, rpm);
+//   // R7.setVelocity(600, rpm);
+//   // R8.setVelocity(600, rpm);
+//   // Out.setVelocity(200, rpm);
+//   // Take.setVelocity(200, rpm);
+//   // outake.setVelocity(200, rpm);
+//   // RollerIntake.setVelocity(600, rpm);
+
+//   // RollerIntake.spin(forward);
+//   // drive(19, 1500);
+//   // vel = false;
+//   // drive(7.5, 1500);
+//   // turn(110);
+//   // Loader.set(true);
+//   // wait(0.3,sec);
+//   // drive(32.5, 1500);
+//   // wait(0.3, sec);
+//   // turn(160);
+//   // Lifter.set(true);
+//   // wait(0.2, sec);
+//   // drive(18, 1300);
+//   // wait(0.3,sec);
+//   // drive(-16, 1100);
+//   // //wait(0.1, sec);
+//   // //turn(195);
+//   // drive(-15, 1000);
+//   // outake.spin(forward);
+//   // wait(3,sec);
+//   // outake.stop();
+//   // RollerIntake.stop();
+//   // drive(27,1500);
+
+//   //////////////////////////////////////////////////////////////////
+
+//   // good elims Right auton
+
+//   //  outake.setStopping(coast);
+//   // RollerIntake.setStopping(coast);
+
+//   // colorsort = task(Colorcontrols);
+//   // jamtask = task(jamcontrols);
+//   // targetColor = vex::color::blue;
+//   // jam = true;
+//   // Trap = false;
+//   // L1.setVelocity(600, rpm);
+//   // L2.setVelocity(600, rpm);
+//   // L3.setVelocity(600, rpm);
+//   // R6.setVelocity(600, rpm);
+//   // R7.setVelocity(600, rpm);
+//   // R8.setVelocity(600, rpm);
+//   // Out.setVelocity(200, rpm);
+//   // Take.setVelocity(200, rpm);
+//   // outake.setVelocity(200, rpm);
+//   // RollerIntake.setVelocity(600, rpm);
+
+//   // RollerIntake.spin(forward);
+//   // drive(19, 1500);
+//   // vel = false;
+//   // drive(7.5, 1500);
+//   // turn(120);
+//   // wait(0.3,sec);
+//   // drive(39, 1500);
+//   // Loader.set(true);
+//   // Lifter.set(true);
+//   // wait(0.3, sec);
+//   // turn(165);
+//   // wait(0.2, sec);
+//   // drive(13, 1000);
+//   // drive(-15, 1100);
+//   // wait(0.2, sec);
+//   // turn(160);
+//   // drive(-15, 1000);
+//   // outake.spin(forward);
+// }
 
 int main()
 {
   vexcodeInit();
-  pre_auton();
-  Competition.autonomous(auton);          // what function to run when autonomous begins, in this case it would run the function "auton"
+  //pre_auton();
+  //Competition.autonomous(auton);          // what function to run when autonomous begins, in this case it would run the function "auton"
   Competition.drivercontrol(usercontrol); // what function to run when driver control begins, in this case it would run the function "usercontrol"
 
   while (true)
   {
 
     // Get computed position from your odometry
-    Pose currentPose = Odom::getPose();
+    // Pose currentPose = Odom::getPose();
 
-    Brain.Screen.setCursor(3, 1);
-    Brain.Screen.setCursor(4, 1);
-    Brain.Screen.print("Pose X: %.2f", currentPose.x);
-    Brain.Screen.setCursor(5, 1);
-    Brain.Screen.print("Pose Y: %.2f", currentPose.y);
-    Brain.Screen.setCursor(6, 1);
-    Brain.Screen.print("Pose Theta: %.2f", currentPose.theta);
+    // Brain.Screen.setCursor(3, 1);
+    // Brain.Screen.setCursor(4, 1);
+    // Brain.Screen.print("Pose X: %.2f", currentPose.x);
+    // Brain.Screen.setCursor(5, 1);
+    // Brain.Screen.print("Pose Y: %.2f", currentPose.y);
+    // Brain.Screen.setCursor(6, 1);
+    // Brain.Screen.print("Pose Theta: %.2f", currentPose.theta);
 
-    Controller1.Screen.clearLine(0);
-    Controller1.Screen.setCursor(1, 1);
-    Controller1.Screen.print("X: %.2f", currentPose.x);
-    Controller1.Screen.setCursor(2, 1);
-    Controller1.Screen.print("Y: %.2f", currentPose.y);
-    Controller1.Screen.setCursor(3, 1);
-    Controller1.Screen.print("T: %.2f", currentPose.theta);
-    printf("(%.2f, %.2f),", currentPose.x, currentPose.y);
-    fflush(stdout);
+    // Controller1.Screen.clearLine(0);
+    // Controller1.Screen.setCursor(1, 1);
+    // Controller1.Screen.print("X: %.2f", currentPose.x);
+    // Controller1.Screen.setCursor(2, 1);
+    // Controller1.Screen.print("Y: %.2f", currentPose.y);
+    // Controller1.Screen.setCursor(3, 1);
+    // Controller1.Screen.print("T: %.2f", currentPose.theta);
+    // printf("(%.2f, %.2f),", currentPose.x, currentPose.y);
+    // fflush(stdout);
 
     wait(50, msec); // Delay to avoid screen spam
   }
