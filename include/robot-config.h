@@ -8,23 +8,19 @@ extern motor L1;
 extern motor R6;
 extern inertial inertial19;
 extern motor L2;
-extern motor L3;
+extern motor PTOL3;
 extern motor R7;
-extern motor R8;
+extern motor PTOR8;
 extern controller Controller2;
-extern digital_out Lifter;
-extern digital_out Trapdoor;
-extern digital_out Alligner;
-extern digital_out Hook;
-extern digital_out Loader;
 extern digital_out DrivePTOPiston;
 extern digital_out IntakePTOPiston;
-extern motor Roller;
-extern motor Intaker;
-extern motor_group R;
-extern motor_group L;
-
+extern motor RIntake;
+extern motor LIntake;
+extern motor_group DrivePTO;
+extern motor_group IntakePTO;
+extern motor_group drivetrain;
 extern motor_group Intake;
+
 /**
  * Used to initialize code/tasks/devices added using tools in VEXcode Pro.
  *
