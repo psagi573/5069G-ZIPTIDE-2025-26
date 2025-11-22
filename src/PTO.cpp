@@ -8,6 +8,10 @@ static DriveMode current_drive_mode = DRIVE_6_MOTOR;
 
 DriveMode setDriveMode(DriveMode targetMode) {
     
+    // 1. Check if the target mode is the same as the current mode
+    if (targetMode == current_drive_mode) {
+        return current_drive_mode;
+    }
 
     // 2. Control the Pistons based on the target mode (using your confirmed logic)
     switch (targetMode) {
@@ -30,6 +34,8 @@ DriveMode setDriveMode(DriveMode targetMode) {
             IntakePTOPiston.set(true); // Extend
             break;
             
+        default:
+            return current_drive_mode; // Return current mode if invalid input
     }
 
     // 3. Wait for the pistons to physically shift (CRITICAL for reliability)
@@ -38,6 +44,7 @@ DriveMode setDriveMode(DriveMode targetMode) {
 
     // 4. Update the state tracker and return the new state
     current_drive_mode = targetMode;
+    return current_drive_mode;
 }
 
 

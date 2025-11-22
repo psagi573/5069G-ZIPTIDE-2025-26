@@ -10,13 +10,13 @@ brain Brain;
 // VEXcode device constructors
 controller Controller1 = controller(primary);
 controller Controller2 = controller(partner);
-motor L1 = motor(PORT8, ratio6_1, true);
+motor L1 = motor(PORT20, ratio6_1, true);
 motor L2 = motor(PORT9, ratio6_1, true);
 motor PTOL3 = motor(PORT10, ratio6_1, false);
 motor LIntake = motor(PORT5, ratio6_1, false);
 
 motor R6 = motor(PORT2, ratio6_1, false);
-motor R7 = motor(PORT4, ratio6_1, false);
+motor R7 = motor(PORT7, ratio6_1, false);
 motor PTOR8 = motor(PORT3, ratio6_1, true);
 motor RIntake = motor(PORT6, ratio6_1, true);
 inertial inertial19 = inertial(PORT9);
