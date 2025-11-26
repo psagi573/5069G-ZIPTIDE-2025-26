@@ -109,37 +109,35 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
   }
 }
 
-// int IntakeControls()
-// {
-//   Intake.stop();
-//   while (true)
-//   {
+int IntakeControls()
+{
+  Intake.stop();
+  while (true)
+  {
 
-//     if (Controller1.ButtonR1.pressing())
-//     {
-//       Trapdoor.set(false);
-//       Intake.spin(forward);
-//       waitUntil(!Controller1.ButtonR1.pressing()); // keeps it spinning until the user let go of R1
-//       Intake.stop();
-//     }
-//     wait(10, msec);
-//   }
-// }
+    if (Controller1.ButtonR1.pressing())
+    {
+      Intake2.spin(forward);
+      waitUntil(!Controller1.ButtonR1.pressing()); // keeps it spinning until the user let go of R1
+      Intake2.stop();
+    }
+    wait(10, msec);
+  }
+}
 
-// int OutakeControls()
-// {
-//   while (true)
-//   {
-//     if (Controller1.ButtonR2.pressing())
-//     {
-//       Trapdoor.set(true);
-//       Intake.spin(forward);
-//       waitUntil(!Controller1.ButtonR2.pressing()); // keeps it spinning until the user let go of R2
-//       Intake.stop();
-//     }
-//     wait(10, msec);
-//   }
-// }
+int OutakeControls()
+{
+  while (true)
+  {
+    if (Controller1.ButtonR2.pressing())
+    {
+      Intake2.spin(reverse);
+      waitUntil(!Controller1.ButtonR2.pressing()); // keeps it spinning until the user let go of R2
+      Intake2.stop();
+    }
+    wait(10, msec);
+  }
+}
 
 // int ReverseControls()
 // {
@@ -389,6 +387,8 @@ void usercontrol() // A function named "usercontrol", in this case, any code in 
   task a(DriveTrainControls); // creates a Thread Named "a" that runs the function "DriveTrainControls", This thread controls the drivetrain
   task b(IntakePTOcontrols);
   task c(DrivePTOcontrols);
+  task d(IntakeControls); // creates a Thread Named "b" that runs the function "IntakeControls", This thread controls the intake
+  task e(OutakeControls);
 
 }
 

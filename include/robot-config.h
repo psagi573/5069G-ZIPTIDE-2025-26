@@ -20,6 +20,7 @@ extern motor_group DrivePTO;
 extern motor_group IntakePTO;
 extern motor_group drivetrain;
 extern motor_group Intake;
+extern motor_group Intake2;
 
 /**
  * Used to initialize code/tasks/devices added using tools in VEXcode Pro.
