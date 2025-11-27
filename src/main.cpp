@@ -36,7 +36,7 @@
 #include "odometry.h"
 #include "motion.h"
 #include "profile.h"
-#include "PTO.h"
+#include "PTOManager.h"
 #include <string>
 
 // Ensure 'autons' and 'selectedAuton' are declared as extern if defined elsewhere
@@ -44,7 +44,15 @@
 using namespace vex; // you need it so vex stuff works
 
 competition Competition; // you need it so it works at a competition
-// Global auton selector
+
+
+
+
+
+
+
+
+
 void set(){
 L1.setStopping(brake);
   L2.setStopping(brake);
@@ -65,51 +73,41 @@ L1.setStopping(brake);
   DrivePTO.setVelocity(600, rpm);
 }
 
+
+
 float tovolt(float percentage)
 {
   return (percentage * 12.0 / 100.0);
 }
 
-int DriveTrainControls() // we create a integer function named "DriveTrainControls", later in the code we plan to turnpid this into a Thread that controls the drivetrain
-{
-  set();
 
-  while (true)
-  {
-    // Read joystick values
-    int forwards = Controller1.Axis3.position(percent);
-    int turning = Controller1.Axis1.position(percent);
 
-    int leftVolt = tovolt(forwards + turning);
-    int rightVolt = tovolt(forwards - turning);
-     
-    
-    // // Spin motors
-    if (getCurrentDriveMode() == DRIVE_4_MOTOR) {
-      L1.spin(forward, leftVolt, volt);
-      L2.spin(forward, leftVolt, volt);
-      R6.spin(forward, rightVolt, volt);
-      R7.spin(forward, rightVolt, volt);
-    } if (getCurrentDriveMode() == DRIVE_6_MOTOR) {
-      L1.spin(forward, leftVolt, volt);
-      L2.spin(forward, leftVolt, volt);
-      PTOL3.spin(forward, leftVolt, volt);
-      R6.spin(forward, rightVolt, volt);
-      R7.spin(forward, rightVolt, volt);
-      PTOR8.spin(forward, rightVolt, volt);
-    } if (getCurrentDriveMode() == DRIVE_8_MOTOR) {
-      L1.spin(forward, leftVolt, volt);
-      L2.spin(forward, leftVolt, volt);
-      PTOL3.spin(forward, leftVolt, volt);
-      LIntake.spin(forward, leftVolt, volt);
-      R6.spin(forward, rightVolt, volt);
-      R7.spin(forward, rightVolt, volt);
-      PTOR8.spin(forward, rightVolt, volt);
-      RIntake.spin(forward, rightVolt, volt);
-}
-  
-    wait(10, msec);
-  }
+
+PTOManager pto(
+    {&L1, &L2, &PTOL3},          // left motors
+    {&R6, &R7, &PTOR8},          // right motors
+    DrivePTO,
+    IntakePTO
+);
+
+
+int DriveTrainControls() {
+    while(true) {
+        float forward = Controller1.Axis3.position(percent);
+        float turn = Controller1.Axis1.position(percent);
+
+        float leftVolt = tovolt(forward + turn);
+        float rightVolt = tovolt(forward - turn);
+
+        // Spin only active motors
+        auto leftActive = pto.getActiveLeftMotors();
+        auto rightActive = pto.getActiveRightMotors();
+
+        for(auto m : leftActive) m->spin(vex::directionType::fwd, leftVolt, vex::voltageUnits::volt);
+        for(auto m : rightActive) m->spin(vex::directionType::fwd, rightVolt, vex::voltageUnits::volt);
+
+        wait(10, msec);
+    }
 }
 
 int IntakeControls()
@@ -267,11 +265,11 @@ int DrivePTOcontrols()
 
       if (DrivePTO)
       {
-        setDriveMode(DRIVE_8_MOTOR);
+        pto.setDriveMode(DRIVE_8_MOTOR);
       }
       else
       {
-        setDriveMode(DRIVE_6_MOTOR);
+        pto.setDriveMode(DRIVE_6_MOTOR);
       }
     }
   }
@@ -301,11 +299,11 @@ int IntakePTOcontrols()
 
       if (IntakePTO)
       {
-        setDriveMode(DRIVE_4_MOTOR);
+        pto.setDriveMode(DRIVE_4_MOTOR);
       }
       else
       {
-        setDriveMode(DRIVE_6_MOTOR);
+        pto.setDriveMode(DRIVE_6_MOTOR);
       }
     }
   }
@@ -413,14 +411,17 @@ void usercontrol() // A function named "usercontrol", in this case, any code in 
 
 void pre_auton(void)
 {
-  vexcodeInit();
-  inertial19.calibrate();
-  while (inertial19.isCalibrating())
-  {
-    wait(100, msec);
-  }
+vexcodeInit();
+    inertial19.calibrate();
+    while(inertial19.isCalibrating()) wait(100, msec);
 
-  Odom::start(L, R, inertial19);
+    // Start odometry with all drivetrain motors
+    Odom::start(
+        {&L1, &L2, &PTOL3},
+        {&R6, &R7, &PTOR8},
+        &inertial19
+    );
+    Odom::setPose(0,0,0);
 }
 
 //////////////////////////////////////////////////////////////////////////

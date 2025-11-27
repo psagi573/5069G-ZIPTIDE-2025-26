@@ -1,57 +1,62 @@
+#include "PTOManager.h"
 #include "vex.h"
-#include "PTO.h" 
 
+PTOManager::PTOManager(std::vector<vex::motor*> leftMotors,
+                       std::vector<vex::motor*> rightMotors,
+                       vex::digital_out& drivePTO,
+                       vex::digital_out& intakePTO)
+    : leftAll(leftMotors), rightAll(rightMotors),
+      drivePiston(drivePTO), intakePiston(intakePTO),
+      currentDriveMode(DRIVE_6_MOTOR) {}
 
+// --- Set drive mode ---
+DriveMode PTOManager::setDriveMode(DriveMode targetMode) {
+    if(targetMode == currentDriveMode) return currentDriveMode;
 
-static DriveMode current_drive_mode = DRIVE_6_MOTOR; 
-
-
-DriveMode setDriveMode(DriveMode targetMode) {
-    
-    // 1. Check if the target mode is the same as the current mode
-    if (targetMode == current_drive_mode) {
-        return current_drive_mode;
-    }
-
-    // 2. Control the Pistons based on the target mode (using your confirmed logic)
-    switch (targetMode) {
-        
+    switch(targetMode) {
         case DRIVE_4_MOTOR:
-            // 4 Motors: Both sets of PTO motors are retracted (Off the drive)
-            DrivePTOPiston.set(true); // Retract
-            IntakePTOPiston.set(false); // Retract
+            drivePiston.set(true);   // retract drive PTO
+            intakePiston.set(false); // retract intake PTO
             break;
-
         case DRIVE_6_MOTOR:
-            // 6 Motors: DrivePTO ON, IntakePTO OFF
-            DrivePTOPiston.set(false); // Extend
-            IntakePTOPiston.set(false); // Retract
+            drivePiston.set(false);  // extend drive PTO
+            intakePiston.set(false);
             break;
-
         case DRIVE_8_MOTOR:
-            // 8 Motors: Both DrivePTO ON and IntakePTO ON
-            DrivePTOPiston.set(false); // Extend
-            IntakePTOPiston.set(true); // Extend
+            drivePiston.set(false);
+            intakePiston.set(true);  // extend intake PTO
             break;
-            
-        default:
-            return current_drive_mode; // Return current mode if invalid input
     }
-
-    // 3. Wait for the pistons to physically shift (CRITICAL for reliability)
-    // TUNE THIS VALUE: It must be long enough for the air to move the cylinder!
-    vex::wait(100, vex::msec); 
-
-    // 4. Update the state tracker and return the new state
-    current_drive_mode = targetMode;
-    return current_drive_mode;
+    vex::wait(100, vex::msec);
+    currentDriveMode = targetMode;
+    return currentDriveMode;
 }
 
+DriveMode PTOManager::getCurrentDriveMode() const {
+    return currentDriveMode;
+}
 
-/**
- * @brief Utility function to get the current drive mode.
- * @return The current DriveMode enum.
- */
-DriveMode getCurrentDriveMode() {
-    return current_drive_mode;
+// --- Return only the motors currently engaged in drivetrain ---
+std::vector<vex::motor*> PTOManager::getActiveLeftMotors() const {
+    switch(currentDriveMode) {
+        case DRIVE_4_MOTOR:
+            return {leftAll[0], leftAll[1]};
+        case DRIVE_6_MOTOR:
+            return {leftAll[0], leftAll[1], leftAll[2]};
+        case DRIVE_8_MOTOR:
+            return {leftAll[0], leftAll[1], leftAll[2]}; // 4th motor is intake
+    }
+    return {leftAll[0], leftAll[1]}; // fallback
+}
+
+std::vector<vex::motor*> PTOManager::getActiveRightMotors() const {
+    switch(currentDriveMode) {
+        case DRIVE_4_MOTOR:
+            return {rightAll[0], rightAll[1]};
+        case DRIVE_6_MOTOR:
+            return {rightAll[0], rightAll[1], rightAll[2]};
+        case DRIVE_8_MOTOR:
+            return {rightAll[0], rightAll[1], rightAll[2]}; // 4th motor is intake
+    }
+    return {rightAll[0], rightAll[1]}; // fallback
 }
