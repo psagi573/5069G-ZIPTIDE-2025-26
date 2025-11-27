@@ -13,8 +13,8 @@ const double wheelTrack = 11.5; // in inches (left-right distance)
 // Motor groups
 
 // PID class values
-PID distPID(0.05, 0, 0.5);
-PID fastTurnPID(0.043, 0.0001, 0.39);
+PID distPID(0.15, 0, 0.99);
+PID fastTurnPID(0.03, 0.0001, 0.3);
 
 PID arcPID(0.15, 0, 0);
 PID sweepPID(0.05, 0, 0.5);
@@ -81,8 +81,8 @@ double minVolt(double v)
     return v;
 }
 
-const float WHEEL_CIRCUMFERENCE = 3.1416 * 3.125;               // ~8.639 inches
-const float INCHES_PER_MOTOR_TURN = WHEEL_CIRCUMFERENCE * 0.8; // ~5.399 inches
+const float WHEEL_CIRCUMFERENCE = M_PI * 3.25;               // ~10.21 inches
+const float INCHES_PER_MOTOR_TURN = WHEEL_CIRCUMFERENCE * 0.8; // Gear ratio is 48:60, so multiply by 0.8
 
 float getAverageDistance()
 {
@@ -105,11 +105,15 @@ float getAverageDistance()
     return distance_inches;
 }
 
+
+
 void drive(double distInches, double timeout)
 {
     distPID.reset();
-    double target = distInches;
-    double start = getAverageDistance(); // in inches
+    double target = distInches-2.5;
+    Pose startPose = Odom::getPose();
+       double startX = startPose.x;
+    double startY = startPose.y;
     double lastError = 0;
     int elapsed = 0;
 
@@ -117,8 +121,9 @@ void drive(double distInches, double timeout)
     {
         // Current pose and distance traveled
         Pose pose = Odom::getPose();
-        double dstart = getAverageDistance() - start;
-        double traveled = dstart;
+        double dx = pose.x - startX;
+        double dy = pose.y - startY;
+        double traveled = sqrt(dx * dx + dy * dy);
         if (distInches < 0)
         {
             traveled = traveled;
@@ -126,6 +131,8 @@ void drive(double distInches, double timeout)
         double error = target - traveled;
         // Compute linear output (PID)
         double linearOut = distPID.compute(target, traveled);
+        // Clamp output between -1 and 1
+        linearOut = clamp(linearOut, -1.0, 1.0);
         // Scale to volts
         linearOut = linearOut * 12.0;
         linearOut = minVolt(linearOut);

@@ -56,7 +56,7 @@ int odomTask() {
         double currRightTurns = rightDrive->position(turns);
         
         // DUAL IMU STEP: Get raw heading from both and average them
-        double imu1Deg = imuSensor1->rotation();
+        double imu1Deg = imuSensor1->heading();
         double currThetaDegRaw = (imu1Deg);
         
 
@@ -135,8 +135,7 @@ int odomTask() {
         currentPose.y += deltaYGlobal;
         
         // Convert the running total angle back to degrees (0-360 normalized)
-        double thetaDeg = runningThetaRad * (180.0 / M_PI);
-        currentPose.theta = fmod(thetaDeg + 360.0, 360.0); 
+        currentPose.theta = fmod(imu1Deg + 360.0, 360.0); 
         
         odomMutex.unlock();
 

@@ -25,8 +25,11 @@ digital_out DrivePTOPiston = digital_out(Brain.ThreeWirePort.H);
 motor_group DrivePTO = motor_group(PTOL3, PTOR8);
 motor_group IntakePTO = motor_group(LIntake, RIntake);
 motor_group drivetrain = motor_group(L1, L2, R6, R7);
+motor_group L = motor_group(L1, L2, PTOL3);
+motor_group R = motor_group(R6, R7, PTOR8);
 motor_group Intake = motor_group(LIntake, RIntake);
-motor_group Intake2 = motor_group(LIntake, RIntake, PTOR8, PTOL3);
+motor_group Intake4 = motor_group(LIntake, RIntake, PTOR8, PTOL3);
+
 
 // VEXcode generated functions
 // define variable for remote controller enable/disable

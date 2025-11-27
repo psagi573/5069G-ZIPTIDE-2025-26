@@ -45,15 +45,8 @@ using namespace vex; // you need it so vex stuff works
 
 competition Competition; // you need it so it works at a competition
 // Global auton selector
-
-float tovolt(float percentage)
-{
-  return (percentage * 12.0 / 100.0);
-}
-
-int DriveTrainControls() // we create a integer function named "DriveTrainControls", later in the code we plan to turnpid this into a Thread that controls the drivetrain
-{
-  L1.setStopping(brake);
+void set(){
+L1.setStopping(brake);
   L2.setStopping(brake);
   PTOL3.setStopping(brake);
   R6.setStopping(brake);
@@ -70,6 +63,16 @@ int DriveTrainControls() // we create a integer function named "DriveTrainContro
   PTOR8.setVelocity(600, rpm);
   IntakePTO.setVelocity(600, rpm);
   DrivePTO.setVelocity(600, rpm);
+}
+
+float tovolt(float percentage)
+{
+  return (percentage * 12.0 / 100.0);
+}
+
+int DriveTrainControls() // we create a integer function named "DriveTrainControls", later in the code we plan to turnpid this into a Thread that controls the drivetrain
+{
+  set();
 
   while (true)
   {
@@ -117,9 +120,9 @@ int IntakeControls()
 
     if (Controller1.ButtonR1.pressing())
     {
-      Intake2.spin(forward);
+      Intake4.spin(forward);
       waitUntil(!Controller1.ButtonR1.pressing()); // keeps it spinning until the user let go of R1
-      Intake2.stop();
+      Intake4.stop();
     }
     wait(10, msec);
   }
@@ -131,9 +134,9 @@ int OutakeControls()
   {
     if (Controller1.ButtonR2.pressing())
     {
-      Intake2.spin(reverse);
+      Intake4.spin(reverse);
       waitUntil(!Controller1.ButtonR2.pressing()); // keeps it spinning until the user let go of R2
-      Intake2.stop();
+      Intake4.stop();
     }
     wait(10, msec);
   }
@@ -417,11 +420,26 @@ void pre_auton(void)
     wait(100, msec);
   }
 
+  Odom::start(L, R, inertial19);
 }
 
 //////////////////////////////////////////////////////////////////////////
 void auton() // A function named "auton", in this case, any code in the brackets will run once (unless in a loop) when its autonomous
 {
+ set();
+ turn(90);
+ wait(2000, msec);
+ turn(270);
+ wait(500, msec);
+//  drive(24,2000);
+//  turn(270);
+//  drive(24,2000); 
+//  turn(180);
+//  drive(24,2000);
+//  turn(90);
+//  drive(24,2000);
+//  turn(0);
+
 
 }
 
