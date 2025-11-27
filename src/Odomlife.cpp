@@ -8,13 +8,13 @@ namespace Odom {
 // ----------------------------------------------------
 
 // 1. Wheel Diameter (in inches)
-const double WHEEL_DIAMETER = 2.75; 
+const double WHEEL_DIAMETER = 3.25; 
 
 // 2. Drive Gear Ratio (Motor Turns / Wheel Turns) -> e.g., (30 / 48) = 0.625
 const double DRIVE_GEAR_RATIO = 48.0 / 60.0;
 
 // 3. Tracking Width (in inches). Distance between the center of the left and right wheels.
-const double TRACKING_WIDTH = 11.0; 
+const double TRACKING_WIDTH = 11.75; 
 
 // 4. Sensor Fusion Weights (IMU is generally more reliable for rotation)
 const double IMU_WEIGHT = 0.9;
@@ -57,8 +57,11 @@ int odomTask() {
         
         // DUAL IMU STEP: Get raw heading from both and average them
         double imu1Deg = imuSensor1->rotation();
-        double currThetaDegRaw = (imu1Deg );
+        double currThetaDegRaw = (imu1Deg);
         
+
+    
+
         // 2. Calculate deltas (change since last tick)
         double deltaLeftTurns = currLeftTurns - prevLeftTurns;
         double deltaRightTurns = currRightTurns - prevRightTurns;

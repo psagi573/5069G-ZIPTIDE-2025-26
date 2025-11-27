@@ -1,4 +1,4 @@
-/*#include "motion.h"
+#include "motion.h"
 #include "pid.h"
 #include "profile.h"
 #include "robot-config.h"
@@ -51,34 +51,24 @@ void setDrive(double left, double right)
     // Send voltage to motors (volt units)
     L1.spin(fwd, left, volt);
     L2.spin(fwd, left, volt);
-    L3.spin(fwd, left, volt);
+    PTOL3.spin(fwd, left, volt);
 
     R6.spin(fwd, right, volt);
     R7.spin(fwd, right, volt);
-    R8.spin(fwd, right, volt);
+    PTOR8.spin(fwd, right, volt);
 }
 
-// Stop all motors
-void stop()
-{
-    // Stop all motors
-    L1.stop(coast);
-    L2.stop(coast);
-    L3.stop(coast);
-    R6.stop(coast);
-    R7.stop(coast);
-    R8.stop(coast);
-}
+
 
 void stops()
 {
     // Stop all motors
     L1.stop(brake);
     L2.stop(brake);
-    L3.stop(brake);
+    PTOL3.stop(brake);
     R6.stop(brake);
     R7.stop(brake);
-    R8.stop(brake);
+    PTOR8.stop(brake);
 }
 
 // Check volatage and apply minimum voltage if needed
@@ -99,10 +89,10 @@ float getAverageDistance()
     // Get positions from all motors (in turns/rotations)
     float left1_pos = L1.position(turns);
     float left2_pos = L2.position(turns);
-    float left3_pos = L3.position(turns);
+    float left3_pos = PTOL3.position(turns);
     float right1_pos = R6.position(turns);
     float right2_pos = R7.position(turns);
-    float right3_pos = R8.position(turns);
+    float right3_pos = PTOR8.position(turns);
 
     // Calculate average motor rotations
     float avg_rotations = (left1_pos + left2_pos + left3_pos +
@@ -429,4 +419,3 @@ void moveToPoint(double targetX, double targetY, double timeout)
 
 
 
-*/

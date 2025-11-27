@@ -411,17 +411,12 @@ void usercontrol() // A function named "usercontrol", in this case, any code in 
 void pre_auton(void)
 {
   vexcodeInit();
-  // inertial19.calibrate();
-  // while (inertial19.isCalibrating())
-  // {
-  //   wait(100, msec);
-  // }
+  inertial19.calibrate();
+  while (inertial19.isCalibrating())
+  {
+    wait(100, msec);
+  }
 
-
-  // autonSelector.initialize();
-  //   while (!Competition.isAutonomous() && !Competition.isDriverControl()) {
-  //   autonSelector.update();   // <- keep checking for inputs
-  //   wait(20, msec);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -440,26 +435,26 @@ int main()
   while (true)
   {
 
-    // Get computed position from your odometry
-    // Pose currentPose = Odom::getPose();
+    //Get computed position from your odometry
+    Pose currentPose = Odom::getPose();
 
-    // Brain.Screen.setCursor(3, 1);
-    // Brain.Screen.setCursor(4, 1);
-    // Brain.Screen.print("Pose X: %.2f", currentPose.x);
-    // Brain.Screen.setCursor(5, 1);
-    // Brain.Screen.print("Pose Y: %.2f", currentPose.y);
-    // Brain.Screen.setCursor(6, 1);
-    // Brain.Screen.print("Pose Theta: %.2f", currentPose.theta);
+    Brain.Screen.setCursor(3, 1);
+    Brain.Screen.setCursor(4, 1);
+    Brain.Screen.print("Pose X: %.2f", currentPose.x);
+    Brain.Screen.setCursor(5, 1);
+    Brain.Screen.print("Pose Y: %.2f", currentPose.y);
+    Brain.Screen.setCursor(6, 1);
+    Brain.Screen.print("Pose Theta: %.2f", currentPose.theta);
 
-    // Controller1.Screen.clearLine(0);
-    // Controller1.Screen.setCursor(1, 1);
-    // Controller1.Screen.print("X: %.2f", currentPose.x);
-    // Controller1.Screen.setCursor(2, 1);
-    // Controller1.Screen.print("Y: %.2f", currentPose.y);
-    // Controller1.Screen.setCursor(3, 1);
-    // Controller1.Screen.print("T: %.2f", currentPose.theta);
-    // printf("(%.2f, %.2f),", currentPose.x, currentPose.y);
-    // fflush(stdout);
+    Controller1.Screen.clearLine(0);
+    Controller1.Screen.setCursor(1, 1);
+    Controller1.Screen.print("X: %.2f", currentPose.x);
+    Controller1.Screen.setCursor(2, 1);
+    Controller1.Screen.print("Y: %.2f", currentPose.y);
+    Controller1.Screen.setCursor(3, 1);
+    Controller1.Screen.print("T: %.2f", currentPose.theta);
+    printf("(%.2f, %.2f),", currentPose.x, currentPose.y);
+    fflush(stdout);
 
     wait(50, msec); // Delay to avoid screen spam
   }
