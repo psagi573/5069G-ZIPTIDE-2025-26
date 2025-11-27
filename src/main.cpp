@@ -72,10 +72,12 @@ float tovolt(float percentage)
 }
 
 PTOManager pto(
-    {&L1, &L2, &PTOL3}, // left motors
-    {&R6, &R7, &PTOR8}, // right motors
-    DrivePTO,
-    IntakePTO);
+    { &L1, &L2, &PTOL3, &LIntake }, // left motors
+    { &R6, &R7, &PTOR8, &RIntake }, // right motors
+    DrivePTOPiston,
+    IntakePTOPiston
+);
+
 
 int DriveTrainControls()
 {
@@ -433,7 +435,7 @@ int main()
   {
 
     // Get computed position from your odometry
-    Pose currentPose = Odom::getPose();
+    Odom::Pose currentPose = Odom::getPose();
 
     Brain.Screen.setCursor(3, 1);
     Brain.Screen.setCursor(4, 1);
