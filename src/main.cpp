@@ -45,16 +45,9 @@ using namespace vex; // you need it so vex stuff works
 
 competition Competition; // you need it so it works at a competition
 
-
-
-
-
-
-
-
-
-void set(){
-L1.setStopping(brake);
+void set()
+{
+  L1.setStopping(brake);
   L2.setStopping(brake);
   PTOL3.setStopping(brake);
   R6.setStopping(brake);
@@ -73,41 +66,38 @@ L1.setStopping(brake);
   DrivePTO.setVelocity(600, rpm);
 }
 
-
-
 float tovolt(float percentage)
 {
   return (percentage * 12.0 / 100.0);
 }
 
-
-
-
 PTOManager pto(
-    {&L1, &L2, &PTOL3},          // left motors
-    {&R6, &R7, &PTOR8},          // right motors
+    {&L1, &L2, &PTOL3}, // left motors
+    {&R6, &R7, &PTOR8}, // right motors
     DrivePTO,
-    IntakePTO
-);
+    IntakePTO);
 
+int DriveTrainControls()
+{
+  while (true)
+  {
+    float forward = Controller1.Axis3.position(percent);
+    float turn = Controller1.Axis1.position(percent);
 
-int DriveTrainControls() {
-    while(true) {
-        float forward = Controller1.Axis3.position(percent);
-        float turn = Controller1.Axis1.position(percent);
+    float leftVolt = tovolt(forward + turn);
+    float rightVolt = tovolt(forward - turn);
 
-        float leftVolt = tovolt(forward + turn);
-        float rightVolt = tovolt(forward - turn);
+    // Spin only active motors
+    auto leftActive = pto.getActiveLeftMotors();
+    auto rightActive = pto.getActiveRightMotors();
 
-        // Spin only active motors
-        auto leftActive = pto.getActiveLeftMotors();
-        auto rightActive = pto.getActiveRightMotors();
+    for (auto m : leftActive)
+      m->spin(vex::directionType::fwd, leftVolt, vex::voltageUnits::volt);
+    for (auto m : rightActive)
+      m->spin(vex::directionType::fwd, rightVolt, vex::voltageUnits::volt);
 
-        for(auto m : leftActive) m->spin(vex::directionType::fwd, leftVolt, vex::voltageUnits::volt);
-        for(auto m : rightActive) m->spin(vex::directionType::fwd, rightVolt, vex::voltageUnits::volt);
-
-        wait(10, msec);
-    }
+    wait(10, msec);
+  }
 }
 
 int IntakeControls()
@@ -202,9 +192,6 @@ int OutakeControls()
 //   }
 // }
 
-
-
-
 // int Allignercontrols()
 // {
 
@@ -238,8 +225,6 @@ int OutakeControls()
 //     }
 //   }
 // }
-
-
 
 int DrivePTOcontrols()
 {
@@ -309,7 +294,6 @@ int IntakePTOcontrols()
   }
 }
 
-
 // int Hookcontrols()
 // {
 
@@ -343,9 +327,6 @@ int IntakePTOcontrols()
 //     }
 //   }
 // }
-
-
-
 
 // int Loadercontrols()
 // {
@@ -390,7 +371,6 @@ void usercontrol() // A function named "usercontrol", in this case, any code in 
   task c(DrivePTOcontrols);
   task d(IntakeControls); // creates a Thread Named "b" that runs the function "IntakeControls", This thread controls the intake
   task e(OutakeControls);
-
 }
 
 /*    ___           ___           ___           ___           ___           ___
@@ -411,37 +391,35 @@ void usercontrol() // A function named "usercontrol", in this case, any code in 
 
 void pre_auton(void)
 {
-vexcodeInit();
-    inertial19.calibrate();
-    while(inertial19.isCalibrating()) wait(100, msec);
+  vexcodeInit();
+  inertial19.calibrate();
+  while (inertial19.isCalibrating())
+    wait(100, msec);
 
-    // Start odometry with all drivetrain motors
-    Odom::start(
-        {&L1, &L2, &PTOL3},
-        {&R6, &R7, &PTOR8},
-        &inertial19
-    );
-    Odom::setPose(0,0,0);
+  // Start odometry with all drivetrain motors
+  Odom::start(
+      {&L1, &L2, &PTOL3},
+      {&R6, &R7, &PTOR8},
+      &inertial19);
+  Odom::setPose(0, 0, 0);
 }
 
 //////////////////////////////////////////////////////////////////////////
 void auton() // A function named "auton", in this case, any code in the brackets will run once (unless in a loop) when its autonomous
 {
- set();
- turn(90);
- wait(2000, msec);
- turn(270);
- wait(500, msec);
-//  drive(24,2000);
-//  turn(270);
-//  drive(24,2000); 
-//  turn(180);
-//  drive(24,2000);
-//  turn(90);
-//  drive(24,2000);
-//  turn(0);
-
-
+  set();
+  turn(90);
+  wait(2000, msec);
+  turn(270);
+  wait(500, msec);
+  //  drive(24,2000);
+  //  turn(270);
+  //  drive(24,2000);
+  //  turn(180);
+  //  drive(24,2000);
+  //  turn(90);
+  //  drive(24,2000);
+  //  turn(0);
 }
 
 int main()
@@ -454,7 +432,7 @@ int main()
   while (true)
   {
 
-    //Get computed position from your odometry
+    // Get computed position from your odometry
     Pose currentPose = Odom::getPose();
 
     Brain.Screen.setCursor(3, 1);
