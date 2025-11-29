@@ -36,8 +36,8 @@
 #include "odometry.h"
 #include "motion.h"
 #include "profile.h"
-#include "PTOManager.h"
 #include <string>
+#include "PTOManager.h"
 
 // Ensure 'autons' and 'selectedAuton' are declared as extern if defined elsewhere
 
@@ -71,6 +71,8 @@ float tovolt(float percentage)
   return (percentage * 12.0 / 100.0);
 }
 
+
+
 PTOManager pto(
     { &L1, &L2, &PTOL3, &LIntake }, // left motors
     { &R6, &R7, &PTOR8, &RIntake }, // right motors
@@ -81,6 +83,7 @@ PTOManager pto(
 
 int DriveTrainControls()
 {
+  set();
   while (true)
   {
     float forward = Controller1.Axis3.position(percent);
@@ -104,15 +107,21 @@ int DriveTrainControls()
 
 int IntakeControls()
 {
-  Intake.stop();
   while (true)
   {
 
-    if (Controller1.ButtonR1.pressing())
+    if (Controller1.ButtonR2.pressing())
     {
-      Intake4.spin(forward);
-      waitUntil(!Controller1.ButtonR1.pressing()); // keeps it spinning until the user let go of R1
-      Intake4.stop();
+      if (pto.getCurrentDriveMode() == DRIVE_4_MOTOR) {
+        Intake4.spin(forward);
+        waitUntil(!Controller1.ButtonR2.pressing()); // keeps it spinning until the user let go of R2
+        Intake4.stop(); 
+      }
+      if (pto.getCurrentDriveMode() == DRIVE_6_MOTOR) {
+        Intake2.spin(forward);
+        waitUntil(!Controller1.ButtonR2.pressing()); // keeps it spinning until the user let go of R2
+        Intake2.stop();
+      }
     }
     wait(10, msec);
   }
@@ -122,11 +131,18 @@ int OutakeControls()
 {
   while (true)
   {
-    if (Controller1.ButtonR2.pressing())
+    if (Controller1.ButtonR1.pressing())
     {
-      Intake4.spin(reverse);
-      waitUntil(!Controller1.ButtonR2.pressing()); // keeps it spinning until the user let go of R2
-      Intake4.stop();
+      if (pto.getCurrentDriveMode() == DRIVE_4_MOTOR) {
+        Intake4.spin(reverse);
+        waitUntil(!Controller1.ButtonR1.pressing()); // keeps it spinning until the user let go of R1
+        Intake4.stop(); 
+      }
+      if (pto.getCurrentDriveMode() == DRIVE_6_MOTOR) {
+        Intake2.spin(reverse);
+        waitUntil(!Controller1.ButtonR1.pressing()); // keeps it spinning until the user let go of R1
+        Intake2.stop();
+      }
     }
     wait(10, msec);
   }
@@ -399,10 +415,8 @@ void pre_auton(void)
     wait(100, msec);
 
   // Start odometry with all drivetrain motors
-  Odom::start(
-      {&L1, &L2, &PTOL3},
-      {&R6, &R7, &PTOR8},
-      &inertial19);
+  Odom::start({&L1, &L2, &PTOL3, &LIntake}, {&R6, &R7, &PTOR8, &RIntake}, &inertial19);
+
   Odom::setPose(0, 0, 0);
 }
 

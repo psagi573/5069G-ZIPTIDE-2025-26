@@ -19,7 +19,7 @@ extern motor LIntake;
 extern motor_group DrivePTO;
 extern motor_group IntakePTO;
 extern motor_group drivetrain;
-extern motor_group Intake;
+extern motor_group Intake2;
 extern motor_group Intake4;
 extern motor_group L;
 extern motor_group R;

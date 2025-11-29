@@ -183,3 +183,4 @@ void setActiveMotors(const std::vector<bool>& leftA, const std::vector<bool>& ri
     leftActive = leftA;
     rightActive = rightA;
 }
+}

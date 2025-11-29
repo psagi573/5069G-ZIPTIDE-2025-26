@@ -111,7 +111,7 @@ void drive(double distInches, double timeout)
 {
     distPID.reset();
     double target = distInches-2.5;
-    Pose startPose = Odom::getPose();
+    Odom::Pose startPose = Odom::getPose();
        double startX = startPose.x;
     double startY = startPose.y;
     double lastError = 0;
@@ -120,7 +120,7 @@ void drive(double distInches, double timeout)
     while (true)
     {
         // Current pose and distance traveled
-        Pose pose = Odom::getPose();
+        Odom::Pose pose = Odom::getPose();
         double dx = pose.x - startX;
         double dy = pose.y - startY;
         double traveled = sqrt(dx * dx + dy * dy);
@@ -158,7 +158,7 @@ void turn(double targetHeading)
 
     while (true)
     {
-        Pose pose = Odom::getPose();
+        Odom::Pose pose = Odom::getPose();
         double heading = inertial19.heading();
 
         // FIXED: Proper angle difference calculation
@@ -206,7 +206,7 @@ void arc(double radiusInches, double angleDeg)
     double absRadius = fabs(radiusInches);
 
     double arcLength = 2.0 * M_PI * absRadius * (fabs(angleDeg) / 360.0);
-    Pose startPose = Odom::getPose();
+    Odom::Pose startPose = Odom::getPose();
 
     // Calculate target heading and normalize to [-180, 180]
     double targetHeading = startPose.theta + angleDeg;
@@ -222,7 +222,7 @@ void arc(double radiusInches, double angleDeg)
 
     while (true)
     {
-        Pose pose = Odom::getPose();
+        Odom::Pose pose = Odom::getPose();
 
         // Calculate traveled distance as Euclidean distance
         double dx = pose.x - startPose.x;
@@ -282,7 +282,7 @@ void Sweep(double targetAngleDeg, bool left)
     while (true)
     {
         // Current pose and heading
-        Pose pose = Odom::getPose();
+        Odom::Pose pose = Odom::getPose();
         double heading = pose.theta;
 
         // PID output for turning
@@ -322,7 +322,7 @@ void moveToPose(double targetX, double targetY, double finalHeading, double time
     drivePID.reset();
     headingPID.reset();
 
-    Pose start = Odom::getPose();
+    Odom::Pose start = Odom::getPose();
     double dxStart = targetX - start.x;
     double dyStart = targetY - start.y;
     double initialDistance = sqrt(dxStart * dxStart + dyStart * dyStart);
@@ -345,7 +345,7 @@ void moveToPose(double targetX, double targetY, double finalHeading, double time
 
     while (true)
     {
-        Pose pose = Odom::getPose();
+        Odom::Pose pose = Odom::getPose();
 
         // 1. Distance Calculation
         double dx = targetX - pose.x;
