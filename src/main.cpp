@@ -110,16 +110,16 @@ int IntakeControls()
   while (true)
   {
 
-    if (Controller1.ButtonR2.pressing())
+    if (Controller1.ButtonR1.pressing())
     {
       if (pto.getCurrentDriveMode() == DRIVE_4_MOTOR) {
         Intake4.spin(forward);
-        waitUntil(!Controller1.ButtonR2.pressing()); // keeps it spinning until the user let go of R2
+        waitUntil(!Controller1.ButtonR1.pressing()); // keeps it spinning until the user let go of R2
         Intake4.stop(); 
       }
       if (pto.getCurrentDriveMode() == DRIVE_6_MOTOR) {
         Intake2.spin(forward);
-        waitUntil(!Controller1.ButtonR2.pressing()); // keeps it spinning until the user let go of R2
+        waitUntil(!Controller1.ButtonR1.pressing()); // keeps it spinning until the user let go of R2
         Intake2.stop();
       }
     }
@@ -131,16 +131,16 @@ int OutakeControls()
 {
   while (true)
   {
-    if (Controller1.ButtonR1.pressing())
+    if (Controller1.ButtonR2.pressing())
     {
       if (pto.getCurrentDriveMode() == DRIVE_4_MOTOR) {
         Intake4.spin(reverse);
-        waitUntil(!Controller1.ButtonR1.pressing()); // keeps it spinning until the user let go of R1
+        waitUntil(!Controller1.ButtonR2.pressing()); // keeps it spinning until the user let go of R1
         Intake4.stop(); 
       }
       if (pto.getCurrentDriveMode() == DRIVE_6_MOTOR) {
         Intake2.spin(reverse);
-        waitUntil(!Controller1.ButtonR1.pressing()); // keeps it spinning until the user let go of R1
+        waitUntil(!Controller1.ButtonR2.pressing()); // keeps it spinning until the user let go of R1
         Intake2.stop();
       }
     }
@@ -284,7 +284,7 @@ int IntakePTOcontrols()
   bool IntakePTO = false;
   while (true)
   {
-    if (Controller1.ButtonLeft.pressing())
+    if (Controller1.ButtonDown.pressing())
     {
       if (IntakePTO)
       {
@@ -294,7 +294,7 @@ int IntakePTOcontrols()
       {
         IntakePTO = true;
       }
-      while (Controller1.ButtonLeft.pressing())
+      while (Controller1.ButtonDown.pressing())
       {
 
         wait(5, msec);
@@ -312,75 +312,73 @@ int IntakePTOcontrols()
   }
 }
 
-// int Hookcontrols()
-// {
+int Parkcontrols()
+{
 
-//   bool hook1 = true;
-//   while (true)
-//   {
-//     if (Controller1.ButtonY.pressing())
-//     {
-//       if (hook1)
-//       {
-//         hook1 = false;
-//       }
-//       else if (!hook1)
-//       {
-//         hook1=true;
-//       }
-//       while (Controller1.ButtonY.pressing())
-//       {
+  bool Park = false;
+  while (true)
+  {
+    if (Controller1.ButtonY.pressing())
+    {
+      if (Park)
+      {
+        Park = false;
+      }
+      else if (!Park)
+      {
+        Park = true;
+      }
+      while (Controller1.ButtonY.pressing())
+      {
 
-//         wait(5, msec);
-//       }
+        wait(5, msec);
+      }
 
-//       if (hook1)
-//       {
-//         Hook.set(true);
-//       }
-//       else
-//       {
-//         Hook.set(false);
-//       }
-//     }
-//   }
-// }
+      if (Park)
+      {
+        Doublepark.set(true);
+      }
+      else
+      {
+        Doublepark.set(false);
+      }
+    }
+  }
+}
 
-// int Loadercontrols()
-// {
+int Lliftercontrols()
+{
 
-//   bool loader1 = true;
-//   while (true)
-//   {
-//     if (Controller1.ButtonDown.pressing())
-//     {
-//       if (loader1)
-//       {
-//         loader1 = false;
-//       }
-//       else if (!loader1)
-//       {
-//         loader1 = true;
-//       }
-//       while (Controller1.ButtonDown.pressing())
-//       {
+  bool lifter = false;
+  while (true)
+  {
+    if (Controller1.ButtonB.pressing())
+    {
+      if (lifter)
+      {
+        lifter = false;
+      }
+      else if (!lifter)
+      {
+        lifter = true;
+      }
+      while (Controller1.ButtonB.pressing())
+      {
 
-//         wait(5, msec);
-//       }
+        wait(5, msec);
+      }
 
-//       if (loader1)
-//       {
-//         Alligner.set(false);
-//         Loader.set(true);
-//       }
-//       else
-//       {
-//         Alligner.set(true);
-//         Loader.set(false);
-//       }
-//     }
-//   }
-// }
+      if (lifter)
+      {
+        Lifter.set(true);
+      }
+      else
+      {
+        Lifter.set(false);
+      }
+    }
+  }
+}
 
 void usercontrol() // A function named "usercontrol", in this case, any code in the brackets will run once (unless in a loop) when its driver control
 {
@@ -389,6 +387,8 @@ void usercontrol() // A function named "usercontrol", in this case, any code in 
   task c(DrivePTOcontrols);
   task d(IntakeControls); // creates a Thread Named "b" that runs the function "IntakeControls", This thread controls the intake
   task e(OutakeControls);
+  task f(Parkcontrols);
+  task g(Lliftercontrols);
 }
 
 /*    ___           ___           ___           ___           ___           ___
@@ -415,9 +415,14 @@ void pre_auton(void)
     wait(100, msec);
 
   // Start odometry with all drivetrain motors
-  Odom::start({&L1, &L2, &PTOL3, &LIntake}, {&R6, &R7, &PTOR8, &RIntake}, &inertial19);
+    Odom::Pose initialPose;
+    initialPose.x = 0.0; 
+    initialPose.y = 0.0;
+    initialPose.theta = 0.0; // 0=+Y, 90=+X
 
-  Odom::setPose(0, 0, 0);
+    Odom::setPose(initialPose);
+    Odom::start({&Left}, {&Right}, &inertial19);
+
 }
 
 //////////////////////////////////////////////////////////////////////////

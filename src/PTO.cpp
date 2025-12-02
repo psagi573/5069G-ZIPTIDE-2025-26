@@ -44,7 +44,7 @@ std::vector<vex::motor*> PTOManager::getActiveLeftMotors() const {
         case DRIVE_6_MOTOR:
             return {leftAll[0], leftAll[1], leftAll[2]};
         case DRIVE_8_MOTOR:
-            return {leftAll[0], leftAll[1], leftAll[2]}; // 4th motor is intake
+            return {leftAll[0], leftAll[1], leftAll[2], leftAll[3]}; 
     }
     return {leftAll[0], leftAll[1]}; // fallback
 }
@@ -56,7 +56,7 @@ std::vector<vex::motor*> PTOManager::getActiveRightMotors() const {
         case DRIVE_6_MOTOR:
             return {rightAll[0], rightAll[1], rightAll[2]};
         case DRIVE_8_MOTOR:
-            return {rightAll[0], rightAll[1], rightAll[2]}; // 4th motor is intake
+            return {rightAll[0], rightAll[1], rightAll[2], rightAll[3]}; 
     }
     return {rightAll[0], rightAll[1]}; // fallback
 }

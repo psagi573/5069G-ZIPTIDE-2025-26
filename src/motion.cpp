@@ -5,14 +5,16 @@
 #include <cmath>
 #include <algorithm>
 #include "odometry.h"
+#include "BOOM.h"
+#include "PTOManager.h"
+
+
 
 using namespace vex;
 
 const double wheelTrack = 11.5; // in inches (left-right distance)
 
-// Motor groups
-
-// PID class values
+// PID class values (Existing values)
 PID distPID(0.15, 0, 0.99);
 PID fastTurnPID(0.03, 0.0001, 0.3);
 
@@ -22,14 +24,10 @@ PID sweepPID(0.05, 0, 0.5);
 PID drivePID(0.05, 0, 0.6);
 PID headingPID(0.043, 0.0001, 0.39);
 
-const double maxVelDefault = 60; // max linear speed in inches/sec
-const double accelDefault = 30;  // acceleration in inches/sec^2
 
-const double maxVelshort = 60; // max linear speed in inches/sec
-const double accelshort = 20;  // acceleration in inches/sec^2
-
-
-
+/**
+ * @brief Clamps a value between a minimum and maximum.
+ */
 template <typename T>
 T clamp(T value, T minVal, T maxVal)
 {
@@ -41,7 +39,40 @@ T clamp(T value, T minVal, T maxVal)
 }
 
 
-// Set left and right motor voltages
+
+// Global or external PTO instance
+extern PTOManager pto;
+
+// PTO–aware drive function
+void setDrivePTO(double left, double right) {
+    left = clamp(left, -12.0, 12.0);
+    right = clamp(right, -12.0, 12.0);
+
+    // Get only motors engaged in the current configuration
+    auto leftMotors = pto.getActiveLeftMotors();
+    auto rightMotors = pto.getActiveRightMotors();
+
+    for (auto* m : leftMotors)
+        m->spin(vex::forward, left, vex::volt);
+
+    for (auto* m : rightMotors)
+        m->spin(vex::forward, right, vex::volt);
+}
+
+void stopsPTO() {
+    auto leftMotors = pto.getActiveLeftMotors();
+    auto rightMotors = pto.getActiveRightMotors();
+
+    for (auto* m : leftMotors)
+        m->stop(vex::brake);
+
+    for (auto* m : rightMotors)
+        m->stop(vex::brake);
+}
+
+/**
+ * @brief Sets left and right motor voltages.
+ */
 void setDrive(double left, double right)
 {
     // Clamp values for safety
@@ -59,7 +90,9 @@ void setDrive(double left, double right)
 }
 
 
-
+/**
+ * @brief Stops all drive motors with brake mode.
+ */
 void stops()
 {
     // Stop all motors
@@ -71,19 +104,25 @@ void stops()
     PTOR8.stop(brake);
 }
 
-// Check volatage and apply minimum voltage if needed
+/**
+ * @brief Applies a minimum voltage threshold to overcome motor friction.
+ */
 double minVolt(double v)
 {
-    if (v > -2.0 && v < 0)
-        return -2.0;
-    if (v > 0 && v < 2.0)
-        return 2.0;
+    const double MIN_V = 2.0;
+    if (v > -MIN_V && v < 0)
+        return -MIN_V;
+    if (v > 0 && v < MIN_V)
+        return MIN_V;
     return v;
 }
 
 const float WHEEL_CIRCUMFERENCE = M_PI * 3.25;               // ~10.21 inches
 const float INCHES_PER_MOTOR_TURN = WHEEL_CIRCUMFERENCE * 0.8; // Gear ratio is 48:60, so multiply by 0.8
 
+/**
+ * @brief Calculates the average distance traveled based on motor rotations.
+ */
 float getAverageDistance()
 {
     // Get positions from all motors (in turns/rotations)
@@ -105,14 +144,15 @@ float getAverageDistance()
     return distance_inches;
 }
 
-
-
+/**
+ * @brief Drives the robot a linear distance using motor encoders and IMU heading stabilization.
+ */
 void drive(double distInches, double timeout)
 {
     distPID.reset();
-    double target = distInches-2.5;
+    double target = distInches-2.5; 
     Odom::Pose startPose = Odom::getPose();
-       double startX = startPose.x;
+    double startX = startPose.x;
     double startY = startPose.y;
     double lastError = 0;
     int elapsed = 0;
@@ -124,10 +164,12 @@ void drive(double distInches, double timeout)
         double dx = pose.x - startX;
         double dy = pose.y - startY;
         double traveled = sqrt(dx * dx + dy * dy);
+        
         if (distInches < 0)
         {
-            traveled = traveled;
+            traveled = traveled; 
         }
+
         double error = target - traveled;
         // Compute linear output (PID)
         double linearOut = distPID.compute(target, traveled);
@@ -150,6 +192,9 @@ void drive(double distInches, double timeout)
     stops();
 }
 
+/**
+ * @brief Turns the robot to a target absolute heading.
+ */
 void turn(double targetHeading)
 {
     fastTurnPID.reset();
@@ -158,10 +203,10 @@ void turn(double targetHeading)
 
     while (true)
     {
-        Odom::Pose pose = Odom::getPose();
-        double heading = inertial19.heading();
+        // Assuming inertial19 is defined in robot-config.h
+        double heading = inertial19.heading(); 
 
-        // FIXED: Proper angle difference calculation
+        // Proper angle difference calculation
         double remaining = targetHeading - heading;
         while (remaining > 180)
             remaining -= 360;
@@ -194,6 +239,9 @@ void turn(double targetHeading)
     stops();
 }
 
+/**
+ * @brief Executes a wide, smooth arc path.
+ */
 void arc(double radiusInches, double angleDeg)
 {
     arcPID.reset();
@@ -252,7 +300,7 @@ void arc(double radiusInches, double angleDeg)
         double leftVolt = linearOut;
         double rightVolt = linearOut;
 
-        // FIXED: Correct arc direction logic
+        // Correct arc direction logic
         if (arcLeft)
         {
             // Left arc: right wheel is inner (slower), left wheel is outer (faster)
@@ -273,6 +321,9 @@ void arc(double radiusInches, double angleDeg)
     stops();
 }
 
+/**
+ * @brief Performs a sweep turn (pivots one side only).
+ */
 void Sweep(double targetAngleDeg, bool left)
 {
     sweepPID.reset();
@@ -316,113 +367,87 @@ void Sweep(double targetAngleDeg, bool left)
 }
 
 
+/* ============================
+   Boomerang-based motion funcs
+   ============================ */
 
-void moveToPose(double targetX, double targetY, double finalHeading, double timeout)
-{
-    drivePID.reset();
-    headingPID.reset();
+// Blocking move to point using Boomerang controller
+bool moveToPointBoomerang(double tx, double ty, int timeoutMs) {
+    // Create controller with default config
+    Boomerang::Config cfg;
+    Boomerang::Controller ctrl(cfg);
 
-    Odom::Pose start = Odom::getPose();
-    double dxStart = targetX - start.x;
-    double dyStart = targetY - start.y;
-    double initialDistance = sqrt(dxStart * dxStart + dyStart * dyStart);
+    // Set target pose; pass current heading as target heading (unused in XY stage)
+    ctrl.setTarget(tx, ty, 0.0);
 
-    // Calculate the straight-line heading from start to target
-    double targetHeadingToPoint = atan2(dyStart, dxStart) * 180.0 / M_PI;
-    if (targetHeadingToPoint < 0) targetHeadingToPoint += 360;
-
-    double traveled = 0;
-    double lastRemaining = initialDistance;
     int elapsed = 0;
-    
-    // Tracking for smoother turn correction
-    double lastTurnCorrection = 0;
-    const double ALPHA = 0.2; // Smoothing factor for exponential moving average
+    const int dt = 10; // ms loop period (matches rest of file)
+    // Main loop
+    while (elapsed < timeoutMs) {
+        // Get current pose
+        Odom::Pose p = Odom::getPose();
 
-    // Phase tracking
-    const double FINAL_TURN_RADIUS = 5.0; // Start transitioning to final angle when this close
-    bool performingFinalTurn = false;
+        // Run controller update
+        ctrl.update(p.x, p.y, p.theta);
 
-    while (true)
-    {
-        Odom::Pose pose = Odom::getPose();
+        // Apply outputs through existing setDrive (uses volt units)
+        setDrivePTO(ctrl.outL, ctrl.outR);
 
-        // 1. Distance Calculation
-        double dx = targetX - pose.x;
-        double dy = targetY - pose.y;
-        double remainingDistance = sqrt(dx * dx + dy * dy);
-        
-        traveled = initialDistance - remainingDistance; // Distance traveled
-
-        // 2. Heading Target Determination
-        double currentTargetHeading;
-        if (finalHeading == -1.0 || remainingDistance > FINAL_TURN_RADIUS)
-        {
-            // Always face the point while driving (Phase 0: Driving)
-            currentTargetHeading = atan2(dy, dx) * 180.0 / M_PI;
-            if (currentTargetHeading < 0) currentTargetHeading += 360;
-        }
-        else
-        {
-            // Transition to the final desired heading (Phase 1: Final Approach)
-            currentTargetHeading = finalHeading;
-            performingFinalTurn = true;
+        // Check settled (controller sets reachedXY and will run final-turn when close)
+        if (ctrl.isSettled()) {
+            // Stop motors and return success
+            stopsPTO();
+            return true;
         }
 
-        // 3. Distance PID (Linear Speed)
-        // Use initial distance for PID target, use traveled for current
-        double driveOutput = drivePID.compute(initialDistance, traveled, false);
-        // Clamp overall drive power (e.g., to prevent over-acceleration)
-        driveOutput = clamp(driveOutput, -1.0, 1.0); 
-
-        // 4. Heading PID (Correction)
-        double turnCorrection = headingPID.compute(currentTargetHeading, pose.theta, true);
-        
-        // Scale down turn correction to prevent oversteer (TUNE THIS)
-        turnCorrection *= 0.35; 
-        
-        // Smooth turn correction using exponential moving average
-        turnCorrection = ALPHA * turnCorrection + (1 - ALPHA) * lastTurnCorrection;
-        lastTurnCorrection = turnCorrection;
-        
-        // 5. Apply Voltages
-        // The driveOutput is the forward power, turnCorrection adjusts left/right
-        double leftVolt = (driveOutput - turnCorrection)* 12;
-        double rightVolt = (driveOutput + turnCorrection)* 12;
-
-        setDrive(minVolt(leftVolt), minVolt(rightVolt));
-
-
-        // 6. Exit Conditions
-        bool stoppedMoving = fabs(remainingDistance - lastRemaining) < 0.02; // Check velocity near target
-        bool closeToTarget = remainingDistance < 0.5; // Within 0.5 inches
-        
-        // Final Heading Check (only relevant if finalHeading was provided)
-        double finalHeadingError = currentTargetHeading - pose.theta;
-        while (finalHeadingError > 180) finalHeadingError -= 360;
-        while (finalHeadingError < -180) finalHeadingError += 360;
-        bool finalHeadingGood = fabs(finalHeadingError) < 2.0;
-        
-        bool timedOut = elapsed > timeout;
-
-        // If performing final turn, need both position AND heading to be good
-        if (timedOut || (closeToTarget && (performingFinalTurn ? finalHeadingGood : true)))
-            break;
-        
-        lastRemaining = remainingDistance;
-        elapsed += 10;
-        wait(10, msec);
+        // tick
+        wait(dt, msec);
+        elapsed += dt;
     }
 
-    stops();
+    // Timeout
+    stopsPTO();
+    return false;
 }
 
-// Convenience wrapper functions
-void moveToPoint(double targetX, double targetY, double timeout)
-{
-    // Drives to X, Y but stops facing the point
-    moveToPose(targetX, targetY, -1.0, timeout); 
+// Blocking move to pose using Boomerang controller
+bool moveToPoseBoomerang(double tx, double ty, double thetaDeg, int timeoutMs) {
+    Boomerang::Config cfg;
+    Boomerang::Controller ctrl(cfg);
+
+    // Set target pose with desired final heading
+    ctrl.setTarget(tx, ty, thetaDeg);
+
+    int elapsed = 0;
+    const int dt = 10; // ms loop period
+
+    while (elapsed < timeoutMs) {
+        Odom::Pose p = Odom::getPose();
+
+        // run controller (it will handle final-turn once XY reached)
+        ctrl.update(p.x, p.y, p.theta);
+
+        // send volt commands
+        setDrivePTO(ctrl.outL, ctrl.outR);
+
+        // if controller reached XY AND the heading error is within tolerance -> success
+        if (ctrl.isSettled()) {
+            // check final heading error
+            double remaining = thetaDeg - p.theta;
+            while (remaining > 180) remaining -= 360;
+            while (remaining < -180) remaining += 360;
+
+            if (fabs(remaining) <= 3.0) { // 3 deg tolerance (matches earlier config)
+                stops();
+                return true;
+            }
+        }
+
+        wait(dt, msec);
+        elapsed += dt;
+    }
+
+    // timeout
+    stopsPTO();
+    return false;
 }
-
-
-
