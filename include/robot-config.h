@@ -18,6 +18,7 @@ extern digital_out DrivePTOPiston;
 extern digital_out IntakePTOPiston;
 extern digital_out Doublepark;
 extern digital_out Lifter;
+extern digital_out Funnel;
 extern motor RIntake;
 extern motor LIntake;
 extern motor_group DrivePTO;

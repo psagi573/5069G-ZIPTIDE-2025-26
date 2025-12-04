@@ -112,69 +112,108 @@ int IntakeControls()
 
     if (Controller1.ButtonR1.pressing())
     {
-      if (pto.getCurrentDriveMode() == DRIVE_4_MOTOR) {
-        Intake4.spin(forward);
-        waitUntil(!Controller1.ButtonR1.pressing()); // keeps it spinning until the user let go of R2
-        Intake4.stop(); 
-      }
       if (pto.getCurrentDriveMode() == DRIVE_6_MOTOR) {
         Intake2.spin(forward);
         waitUntil(!Controller1.ButtonR1.pressing()); // keeps it spinning until the user let go of R2
-        Intake2.stop();
+        Intake2.stop(); 
       }
+      else {
+        pto.setDriveMode(DRIVE_6_MOTOR);
+      }
+ 
     }
     wait(10, msec);
   }
 }
 
-int OutakeControls()
+int IntakerevControls()
 {
   while (true)
   {
     if (Controller1.ButtonR2.pressing())
     {
-      if (pto.getCurrentDriveMode() == DRIVE_4_MOTOR) {
-        Intake4.spin(reverse);
-        waitUntil(!Controller1.ButtonR2.pressing()); // keeps it spinning until the user let go of R1
-        Intake4.stop(); 
-      }
       if (pto.getCurrentDriveMode() == DRIVE_6_MOTOR) {
         Intake2.spin(reverse);
-        waitUntil(!Controller1.ButtonR2.pressing()); // keeps it spinning until the user let go of R1
-        Intake2.stop();
+        waitUntil(!Controller1.ButtonR2.pressing()); // keeps it spinning until the user let go of R2
+        Intake2.stop(); 
       }
+      else {
+        pto.setDriveMode(DRIVE_6_MOTOR);
+      }
+ 
     }
     wait(10, msec);
   }
 }
 
-// int ReverseControls()
-// {
-//   while (true)
-//   {
-//     if (Controller1.ButtonL1.pressing())
-//     {
-//       Intake.spin(reverse);
-//       waitUntil(!Controller1.ButtonL1.pressing()); // keeps it spinning until the user let go of L1
-//       Intake.stop();
-//     }
-//     wait(10, msec);
-//   }
-// }
 
-// int storeControls()
-// {
-//   while (true)
-//   {
-//     if (Controller1.ButtonL2.pressing())
-//     {
-//       Intake.spin(forward);
-//       waitUntil(!Controller1.ButtonL2.pressing()); // keeps it spinning until the user let go of L1
-//       Intake.stop();
-//       wait(10, msec);
-//     }
-//   }
-// }
+int OutakeControls()
+{
+  while (true)
+  {
+
+    if (Controller1.ButtonL1.pressing())
+    {
+      if (pto.getCurrentDriveMode() == DRIVE_4_MOTOR) {
+        Funnel.set(true);
+        Intake4.spin(forward);
+        waitUntil(!Controller1.ButtonL1.pressing()); // keeps it spinning until the user let go of L1
+        Intake4.stop(); 
+        Funnel.set(false);
+      }
+      else {
+        pto.setDriveMode(DRIVE_4_MOTOR);
+      }
+ 
+    }
+    wait(10, msec);
+  }
+}
+
+int OutakerevControls()
+{
+  while (true)
+  {
+    if (Controller1.ButtonL2.pressing())
+    {
+      if (pto.getCurrentDriveMode() == DRIVE_4_MOTOR) {
+        Funnel.set(true);
+        Intake4.spin(reverse);
+        waitUntil(!Controller1.ButtonL2.pressing()); // keeps it spinning until the user let go of L2
+        Intake4.stop(); 
+        Funnel.set(false);
+      }
+      else {
+        pto.setDriveMode(DRIVE_4_MOTOR);
+      }
+ 
+    }
+    wait(10, msec);
+  }
+}
+
+int slowOutakeControls()
+{
+  while (true)
+  {
+    if (Controller1.ButtonX.pressing())
+    {
+      if (pto.getCurrentDriveMode() == DRIVE_4_MOTOR) {
+        Funnel.set(true);
+        Intake4.spin(reverse, 300, rpm);
+        waitUntil(!Controller1.ButtonX.pressing()); // keeps it spinning until the user let go of L2
+        Intake4.stop(); 
+        Funnel.set(false);
+      }
+      else {
+        pto.setDriveMode(DRIVE_4_MOTOR);
+      }
+ 
+    }
+    wait(10, msec);
+  }
+}
+
 
 // int Liftercontrols()
 // {
@@ -278,39 +317,6 @@ int DrivePTOcontrols()
   }
 }
 
-int IntakePTOcontrols()
-{
-
-  bool IntakePTO = false;
-  while (true)
-  {
-    if (Controller1.ButtonDown.pressing())
-    {
-      if (IntakePTO)
-      {
-        IntakePTO = false;
-      }
-      else if (!IntakePTO)
-      {
-        IntakePTO = true;
-      }
-      while (Controller1.ButtonDown.pressing())
-      {
-
-        wait(5, msec);
-      }
-
-      if (IntakePTO)
-      {
-        pto.setDriveMode(DRIVE_4_MOTOR);
-      }
-      else
-      {
-        pto.setDriveMode(DRIVE_6_MOTOR);
-      }
-    }
-  }
-}
 
 int Parkcontrols()
 {
@@ -383,12 +389,13 @@ int Lliftercontrols()
 void usercontrol() // A function named "usercontrol", in this case, any code in the brackets will run once (unless in a loop) when its driver control
 {
   task a(DriveTrainControls); // creates a Thread Named "a" that runs the function "DriveTrainControls", This thread controls the drivetrain
-  task b(IntakePTOcontrols);
-  task c(DrivePTOcontrols);
-  task d(IntakeControls); // creates a Thread Named "b" that runs the function "IntakeControls", This thread controls the intake
-  task e(OutakeControls);
-  task f(Parkcontrols);
-  task g(Lliftercontrols);
+  task b(DrivePTOcontrols);
+  task c(IntakeControls); // creates a Thread Named "b" that runs the function "IntakeControls", This thread controls the intake
+  task d(OutakeControls);
+  task e(Parkcontrols);
+  task f(Lliftercontrols);
+  task g(IntakerevControls);
+  task h(OutakerevControls);
 }
 
 /*    ___           ___           ___           ___           ___           ___

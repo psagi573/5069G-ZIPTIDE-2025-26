@@ -7,8 +7,8 @@ namespace Odom {
 const double DRIVE_WHEEL_DIAMETER = 3.25; // 3.25 inches
 const double DRIVE_CIRCUMFERENCE = DRIVE_WHEEL_DIAMETER * M_PI;
 
-// Gear Ratio: 48:60 (60/48 = 1.25). Reduction factor.
-const double GEAR_RATIO_REDUCTION = 1.25;
+// Gear Ratio: 48:60 (48/60 = 0.8). Reduction factor.
+const double GEAR_RATIO_REDUCTION = 0.8;
 
 // Conversion Factor: Inches traveled per degree of motor rotation.
 // Calculation: Circumference / (360 * Gear Ratio)
@@ -16,7 +16,7 @@ const double MOTOR_DEGREES_TO_INCHES = DRIVE_CIRCUMFERENCE / (360.0 * GEAR_RATIO
 
 // The distance between the centers of the left and right drive wheels (TRACKING WIDTH)
 // *** THIS VALUE MUST BE PHYSICALLY MEASURED AND CAREFULLY TUNED ***
-const double TRACKING_WIDTH = 12.0; // Placeholder in inches
+const double TRACKING_WIDTH = 11.75; // Placeholder in inches
 
 // --- Internal State and Mutex ---
 Pose currentPose;
@@ -51,11 +51,6 @@ int odomTask() {
     rightMotors->resetPosition();
     prevLPosDeg = 0.0;
     prevRPosDeg = 0.0;
-
-    // Wait for the IMU to finish calibrating before starting
-    while (imuSensor->isCalibrating()) {
-        vex::wait(25, vex::msec);
-    }
     
     // Set initial pose
     poseMutex.lock();

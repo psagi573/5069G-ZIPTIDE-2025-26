@@ -26,6 +26,7 @@ digital_out IntakePTOPiston = digital_out(Brain.ThreeWirePort.G);
 digital_out DrivePTOPiston = digital_out(Brain.ThreeWirePort.H);
 digital_out Doublepark = digital_out(Brain.ThreeWirePort.E);
 digital_out Lifter = digital_out(Brain.ThreeWirePort.D);
+digital_out Funnel = digital_out(Brain.ThreeWirePort.C);
 motor_group DrivePTO = motor_group(PTOL3, PTOR8);
 motor_group IntakePTO = motor_group(LIntake, RIntake);
 motor_group drivetrain = motor_group(L1, L2, R6, R7);
@@ -35,6 +36,7 @@ motor_group Left = motor_group(L1, L2);
 motor_group Right = motor_group(R6, R7);
 motor_group Intake2 = motor_group(LIntake, RIntake);
 motor_group Intake4 = motor_group(LIntake, RIntake, PTOR8, PTOL3);
+
 
 
 // VEXcode generated functions
