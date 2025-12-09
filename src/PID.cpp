@@ -57,7 +57,7 @@ double PID::compute(double target, double current, bool turn)
     }
 
     double derivative = error - prevError;
-    derivative = 0.8 * derivative + 0.2 * prevDerivative; // low-pass filter
+    //derivative = 0.8 * derivative + 0.2 * prevDerivative; // low-pass filter
     prevDerivative = derivative;
     prevError = error;
 

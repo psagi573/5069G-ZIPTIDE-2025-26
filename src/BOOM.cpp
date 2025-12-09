@@ -1,5 +1,5 @@
 // BOOM.cpp - Boomerang v3.6 Hybrid Controller (implementation)
-#include "BOOM.h"
+/*#include "BOOM.h"
 #include <cmath>
 #include <algorithm>
 
@@ -304,3 +304,4 @@ Config getConfig(){ return cfg; }
 void setConfig(const Config &c){ cfg = c; curvFilter.init(cfg.curvatureFilterTau); }
 
 } // namespace BoomerangV36
+*/

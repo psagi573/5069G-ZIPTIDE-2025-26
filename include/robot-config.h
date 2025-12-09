@@ -19,6 +19,7 @@ extern digital_out IntakePTOPiston;
 extern digital_out Doublepark;
 extern digital_out Lifter;
 extern digital_out Funnel;
+extern digital_out Loader;
 extern motor RIntake;
 extern motor LIntake;
 extern motor_group DrivePTO;

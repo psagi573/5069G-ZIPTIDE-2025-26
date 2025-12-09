@@ -10,7 +10,7 @@ brain Brain;
 // VEXcode device constructors
 controller Controller1 = controller(primary);
 controller Controller2 = controller(partner);
-motor L1 = motor(PORT20, ratio6_1, true);
+motor L1 = motor(PORT21, ratio6_1, true);
 motor L2 = motor(PORT9, ratio6_1, true);
 motor PTOL3 = motor(PORT10, ratio6_1, false);
 motor LIntake = motor(PORT5, ratio6_1, false);
@@ -26,7 +26,8 @@ digital_out IntakePTOPiston = digital_out(Brain.ThreeWirePort.G);
 digital_out DrivePTOPiston = digital_out(Brain.ThreeWirePort.H);
 digital_out Doublepark = digital_out(Brain.ThreeWirePort.E);
 digital_out Lifter = digital_out(Brain.ThreeWirePort.D);
-digital_out Funnel = digital_out(Brain.ThreeWirePort.C);
+digital_out Funnel = digital_out(Brain.ThreeWirePort.F);
+digital_out Loader = digital_out(Brain.ThreeWirePort.C);
 motor_group DrivePTO = motor_group(PTOL3, PTOR8);
 motor_group IntakePTO = motor_group(LIntake, RIntake);
 motor_group drivetrain = motor_group(L1, L2, R6, R7);

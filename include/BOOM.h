@@ -1,5 +1,5 @@
 // BOOM.h - Boomerang v3.6 Hybrid Controller (header)
-#pragma once
+/*#pragma once
 #ifndef BOOM_V3_6_H
 #define BOOM_V3_6_H
 
@@ -87,3 +87,4 @@ Pose predictPose(const Pose &p, double vx_ips, double omega_rad_s, double dt);
 } // namespace BoomerangV36
 
 #endif // BOOM_V3_6_H
+*/

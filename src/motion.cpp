@@ -12,11 +12,11 @@
 
 using namespace vex;
 
-const double wheelTrack = 11.5; // in inches (left-right distance)
+const double wheelTrack = 11.75; // in inches (left-right distance)
 
 // PID class values (Existing values)
-PID distPID(0.15, 0, 0.99);
-PID fastTurnPID(0.03, 0.0001, 0.3);
+PID distPID(0.15, 0, 0.7);
+PID fastTurnPID(0.03, 0, 0.25);
 
 PID arcPID(0.15, 0, 0);
 PID sweepPID(0.05, 0, 0.5);
@@ -117,7 +117,7 @@ double minVolt(double v)
     return v;
 }
 
-const float WHEEL_CIRCUMFERENCE = M_PI * 3.25;               // ~10.21 inches
+const float WHEEL_CIRCUMFERENCE = M_PI * 3.85;               // ~12.09 inches
 const float INCHES_PER_MOTOR_TURN = WHEEL_CIRCUMFERENCE * 0.8; // Gear ratio is 48:60, so multiply by 0.8
 
 /**
@@ -150,20 +150,16 @@ float getAverageDistance()
 void drive(double distInches, double timeout)
 {
     distPID.reset();
-    double target = distInches-2.5; 
-    Odom::Pose startPose = Odom::getPose();
-    double startX = startPose.x;
-    double startY = startPose.y;
+    double target = distInches; 
+    double start = getAverageDistance();
     double lastError = 0;
     int elapsed = 0;
 
     while (true)
     {
         // Current pose and distance traveled
-        Odom::Pose pose = Odom::getPose();
-        double dx = pose.x - startX;
-        double dy = pose.y - startY;
-        double traveled = sqrt(dx * dx + dy * dy);
+        double current= getAverageDistance();
+        double traveled = current-start;
         
         if (distInches < 0)
         {
@@ -182,7 +178,7 @@ void drive(double distInches, double timeout)
         double rightVolt = linearOut;
         setDrive(leftVolt, rightVolt);
         // Exit conditions
-        if ((fabs(error) < 0.5 && fabs(error - lastError) < 0.1) || elapsed > timeout)
+        if ((fabs(error) < 1 && fabs(error - lastError) < 0.1) || elapsed > timeout)
             break;
         lastError = error;
         elapsed += 10;
@@ -227,7 +223,7 @@ void turn(double targetHeading)
         rightVolt = minVolt(rightVolt);
 
         // Exit conditions
-        if (fabs(remaining) < 1.0 || elapsedTime >= timeout)
+        if (fabs(remaining) < 2.0 || elapsedTime >= timeout)
             break;
 
         setDrive(leftVolt, rightVolt);
