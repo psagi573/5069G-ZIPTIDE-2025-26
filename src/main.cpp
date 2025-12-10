@@ -406,12 +406,55 @@ void pre_auton(void)
 //////////////////////////////////////////////////////////////////////////
 void auton() // A function named "auton", in this case, any code in the brackets will run once (unless in a loop) when its autonomous
 {
+
+
+  ////////////SWP///////////////
   set();
-  Intake2.spin(reverse);
-  drive(25, 3000);
+  //Intake2.spin(reverse);
+  drive(20, 3000);
   wait(0.1, sec);
-  //drive(5,2000);
- 
+  drive(5,2000);
+  turn(100);
+  drive(28.5,2000);
+  turn(156);
+  Intake2.stop();
+  drive(-22,1000);
+  pto.setDriveMode(DRIVE_4_MOTOR);
+  Funnel.set(true);
+  //Intake4.spin(reverse);
+  wait(1, sec);
+  Intake4.stop();
+  pto.setDriveMode(DRIVE_6_MOTOR);
+  Funnel.set(false);
+  drive(15,2000);
+  turn(254);
+  Lifter.set(false);
+  //Intake2.spin(reverse);
+  drive(70,3000);
+  drive(11,2000);
+  wait(0.3,sec);
+  turn(191);
+  drive(-20,2000);
+  Funnel.set(false);
+  wait(0.5,sec);
+  drive(57,2000);
+  turn(156);
+  Loader.set(true);
+  wait(0.3,sec);
+  drive(15,800);
+  wait(3,sec);
+  Lifter.set(false);
+  drive(-33, 2000);
+  Intake2.stop();
+  Funnel.set(true);
+  pto.setDriveMode(DRIVE_4_MOTOR);
+  //Intake4.spin(reverse);
+  wait(1,sec);
+  Intake4.stop();
+  pto.setDriveMode(DRIVE_6_MOTOR);
+  drive(10, 2000);
+  drive(-10, 2000);
+  
 }
 
 int main()

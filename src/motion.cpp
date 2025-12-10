@@ -16,7 +16,7 @@ const double wheelTrack = 11.75; // in inches (left-right distance)
 
 // PID class values (Existing values)
 PID distPID(0.15, 0, 0.7);
-PID fastTurnPID(0.03, 0, 0.25);
+PID fastTurnPID(0.03, 0, 0.23);
 
 PID arcPID(0.15, 0, 0);
 PID sweepPID(0.05, 0, 0.5);
@@ -117,6 +117,16 @@ double minVolt(double v)
     return v;
 }
 
+double minVoltturn(double v)
+{
+    const double MIN_V = 3.0;
+    if (v > -MIN_V && v < 0)
+        return -MIN_V;
+    if (v > 0 && v < MIN_V)
+        return MIN_V;
+    return v;
+}
+
 const float WHEEL_CIRCUMFERENCE = M_PI * 3.85;               // ~12.09 inches
 const float INCHES_PER_MOTOR_TURN = WHEEL_CIRCUMFERENCE * 0.8; // Gear ratio is 48:60, so multiply by 0.8
 
@@ -128,21 +138,24 @@ float getAverageDistance()
     // Get positions from all motors (in turns/rotations)
     float left1_pos = L1.position(turns);
     float left2_pos = L2.position(turns);
-    float left3_pos = PTOL3.position(turns);
     float right1_pos = R6.position(turns);
     float right2_pos = R7.position(turns);
-    float right3_pos = PTOR8.position(turns);
 
     // Calculate average motor rotations
-    float avg_rotations = (left1_pos + left2_pos + left3_pos +
-                           right1_pos + right2_pos + right3_pos) /
-                          6.0;
+    float avg_rotations = (left1_pos + left2_pos +
+                           right1_pos + right2_pos) /
+                          4.0;
 
     // Convert average motor rotations to inches traveled
     float distance_inches = avg_rotations * INCHES_PER_MOTOR_TURN;
 
     return distance_inches;
 }
+
+
+
+
+
 
 /**
  * @brief Drives the robot a linear distance using motor encoders and IMU heading stabilization.
@@ -176,7 +189,7 @@ void drive(double distInches, double timeout)
         linearOut = minVolt(linearOut);
         double leftVolt = linearOut;
         double rightVolt = linearOut;
-        setDrive(leftVolt, rightVolt);
+        setDrivePTO(leftVolt, rightVolt);
         // Exit conditions
         if ((fabs(error) < 1 && fabs(error - lastError) < 0.1) || elapsed > timeout)
             break;
@@ -185,8 +198,10 @@ void drive(double distInches, double timeout)
         wait(10, msec);
     }
 
-    stops();
+    stopsPTO();
 }
+
+
 
 /**
  * @brief Turns the robot to a target absolute heading.
@@ -219,20 +234,20 @@ void turn(double targetHeading)
         double rightVolt = -12 * turnOutput;
 
         // Apply minimum voltage
-        leftVolt = minVolt(leftVolt);
-        rightVolt = minVolt(rightVolt);
+        leftVolt = minVoltturn(leftVolt);
+        rightVolt = minVoltturn(rightVolt);
 
         // Exit conditions
         if (fabs(remaining) < 2.0 || elapsedTime >= timeout)
             break;
 
-        setDrive(leftVolt, rightVolt);
+        setDrivePTO(leftVolt, rightVolt);
 
         elapsedTime += 10;
         wait(10, msec);
     }
 
-    stops();
+    stopsPTO();
 }
 
 /**
