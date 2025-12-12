@@ -216,20 +216,20 @@ int slowOutakeControls()
   }
 }
 
-
+bool Loader1 = false;
 int Loadercontrols()
 {
 
-  bool Loader1 = true;
+
   while (true)
   {
     if (Controller1.ButtonY.pressing())
     {
-      if (Lifter)
+      if (Loader1)
       {
         Loader1 = false;
       }
-      else if (!Lifter)
+      else if (!Loader1)
       {
         Loader1 = true;
       }
@@ -241,6 +241,7 @@ int Loadercontrols()
 
       if (Loader1)
       {
+        Lifter.set(false);
         Loader.set(true);
       }
       else
@@ -343,7 +344,9 @@ int Lliftercontrols()
 
       if (lifter)
       {
-        Lifter.set(true);
+        if (!Loader1){
+          Lifter.set(true);
+        }
       }
       else
       {
@@ -423,27 +426,34 @@ void auton() // A function named "auton", in this case, any code in the brackets
   pto.setDriveMode(DRIVE_4_MOTOR);
   Funnel.set(true);
   Intake4.spin(reverse);
-  wait(1, sec);
+  wait(1.5, sec);
   Intake4.stop();
   pto.setDriveMode(DRIVE_6_MOTOR);
   Funnel.set(false);
   drive(15,2000);
-  turn(256);
+  turn(257.5);
   Lifter.set(true);
   Intake2.spin(reverse);
   drive(70,3000);
   wait(0.1, sec);
   drive(11,2000);
   wait(0.3,sec);
-  turn(191);
+  turn(192);
+  Intake2.stop();
   drive(-17,2000);
   Funnel.set(true);
-  wait(5,sec);
-  drive(57,2000);
-  /*Funnel.set(false);
+  pto.setDriveMode(DRIVE_4_MOTOR);
+  Intake4.spin(reverse);
+  wait(0.5,sec);
+  Intake4.stop();
+  pto.setDriveMode(DRIVE_6_MOTOR);
+  turn(198);
+  drive(50,2000);
+  Funnel.set(false);
+  Intake2.spin(reverse);
   turn(156);
   Loader.set(true);
-  wait(0.3,sec);
+  wait(0.8,sec);
   drive(15,800);
   wait(3,sec);
   Lifter.set(false);
@@ -452,11 +462,11 @@ void auton() // A function named "auton", in this case, any code in the brackets
   Funnel.set(true);
   pto.setDriveMode(DRIVE_4_MOTOR);
   Intake4.spin(reverse);
-  wait(1,sec);
+  wait(1.5,sec);
   Intake4.stop();
   pto.setDriveMode(DRIVE_6_MOTOR);
   drive(10, 2000);
-  drive(-10, 2000);*/
+  drive(-10, 2000);
 
 
 
